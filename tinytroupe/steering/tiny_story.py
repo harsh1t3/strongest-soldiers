@@ -80,9 +80,7 @@ class TinyStory:
             base_module_folder="steering",
             rendering_configs=rendering_configs,
         )
-        next_message = client().send_message(messages)
-
-        start = next_message["content"]
+        start = self._story_text(client().send_message(messages))
 
         self.current_story += utils.dedent(
             f"""
@@ -120,9 +118,7 @@ class TinyStory:
             base_module_folder="steering",
             rendering_configs=rendering_configs,
         )
-        next_message = client().send_message(messages)
-
-        continuation = next_message["content"]
+        continuation = self._story_text(client().send_message(messages))
 
         self.current_story += utils.dedent(
             f"""
@@ -135,6 +131,15 @@ class TinyStory:
         )
 
         return continuation
+
+    @staticmethod
+    def _story_text(message) -> str:
+        """
+        Extracts the story text from an LLM response, failing clearly if the request failed (the client returns None then).
+        """
+        if not message or message.get("content") is None:
+            raise RuntimeError("The LLM returned no story text (the request failed or the response was empty).")
+        return message["content"]
 
     def _current_story(self) -> str:
         """

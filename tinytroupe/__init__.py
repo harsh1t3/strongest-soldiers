@@ -79,7 +79,7 @@ class ConfigManager:
         """Initialize default values from config file"""
         config = utils.read_config_file()
 
-        self._config["api_type"] = config["OpenAI"].get("API_TYPE", "openai")
+        self._config["api_type"] = config["OpenAI"].get("API_TYPE", "claude_code")
         self._config["azure_api_version"] = config["OpenAI"].get(
             "AZURE_API_VERSION", "2024-10-21"
         )
@@ -87,16 +87,20 @@ class ConfigManager:
             "BASE_URL", None
         )  # by default, we will not use a custom base URL
 
-        self._config["model"] = config["OpenAI"].get("MODEL", "gpt-4o")
+        self._config["model"] = config["OpenAI"].get("MODEL", "sonnet")
         self._config["embedding_model"] = config["OpenAI"].get(
             "EMBEDDING_MODEL", "text-embedding-3-small"
+        )
+        # used when API_TYPE=claude_code, since Claude has no embeddings API: a small model that runs locally
+        self._config["local_embedding_model"] = config["OpenAI"].get(
+            "LOCAL_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"
         )
         if config["OpenAI"].get("API_TYPE") == "azure":
             self._config["azure_embedding_model_api_version"] = config["OpenAI"].get(
                 "AZURE_EMBEDDING_MODEL_API_VERSION", "2023-05-15"
             )
         self._config["reasoning_model"] = config["OpenAI"].get(
-            "REASONING_MODEL", "o3-mini"
+            "REASONING_MODEL", "sonnet"
         )
 
         # Vision model: used for image understanding. Falls back to MODEL if not set.
@@ -419,11 +423,49 @@ def get_config(key, override_value=None):
 
 if config_manager.get("api_type") == "azure":
     from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
+elif config_manager.get("api_type") == "claude_code":
+    import threading
+
+    from llama_index.core.base.embeddings.base import BaseEmbedding
+    from pydantic import PrivateAttr
+
+    class LazyLocalEmbedding(BaseEmbedding):
+        """
+        Local embeddings (fastembed), since Claude has no embeddings API. The model is downloaded and
+        loaded on first use rather than at import time, so importing tinytroupe stays fast and works offline.
+        """
+
+        _embedder = PrivateAttr(default=None)
+        _embedder_lock = PrivateAttr(default_factory=threading.Lock)
+
+        @classmethod
+        def class_name(cls) -> str:
+            return "LazyLocalEmbedding"
+
+        def _get_embedder(self):
+            with self._embedder_lock:
+                if self._embedder is None:
+                    from fastembed import TextEmbedding
+
+                    self._embedder = TextEmbedding(model_name=self.model_name)
+                return self._embedder
+
+        def _get_query_embedding(self, query: str):
+            return next(iter(self._get_embedder().query_embed(query))).tolist()
+
+        def _get_text_embedding(self, text: str):
+            return self._get_text_embeddings([text])[0]
+
+        def _get_text_embeddings(self, texts):
+            return [embedding.tolist() for embedding in self._get_embedder().passage_embed(texts)]
+
+        async def _aget_query_embedding(self, query: str):
+            return self._get_query_embedding(query)
+
 else:
     from llama_index.embeddings.openai import OpenAIEmbedding
 
 from llama_index.core import Document, Settings, SimpleDirectoryReader, VectorStoreIndex
-from llama_index.readers.web import SimpleWebPageReader
 
 # this will be cached locally by llama-index, in a OS-dependend location
 
@@ -432,12 +474,19 @@ from llama_index.readers.web import SimpleWebPageReader
 ##)
 
 if config_manager.get("api_type") == "azure":
+    # Same credentials as the chat client: the README documents AZURE_OPENAI_KEY, while llama-index
+    # only looks for AZURE_OPENAI_API_KEY. Without any key, use Entra ID (like the chat client does).
+    _azure_api_key = os.getenv("AZURE_OPENAI_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
     llamaindex_openai_embed_model = AzureOpenAIEmbedding(
         model=config_manager.get("embedding_model"),
         deployment_name=config_manager.get("embedding_model"),
         api_version=config_manager.get("azure_embedding_model_api_version"),
         embed_batch_size=10,
+        api_key=_azure_api_key,
+        use_azure_ad=_azure_api_key is None,
     )
+elif config_manager.get("api_type") == "claude_code":
+    llamaindex_openai_embed_model = LazyLocalEmbedding(model_name=config_manager.get("local_embedding_model"))
 else:
     llamaindex_openai_embed_model = OpenAIEmbedding(
         model=config_manager.get("embedding_model"), embed_batch_size=10

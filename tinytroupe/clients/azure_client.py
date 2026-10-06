@@ -39,12 +39,14 @@ class AzureClient(OpenAIClient):
             )
         )
         
-        if os.getenv("AZURE_OPENAI_KEY"):
+        # accept both names: the README uses AZURE_OPENAI_KEY, .env.example and llama-index use AZURE_OPENAI_API_KEY
+        azure_api_key = os.getenv("AZURE_OPENAI_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
+        if azure_api_key:
             logger.info("Using Azure OpenAI Service API with key...")
             self.client = AzureOpenAI(
                 azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
                 api_version=config_manager.get("AZURE_API_VERSION"),
-                api_key=os.getenv("AZURE_OPENAI_KEY"),
+                api_key=azure_api_key,
                 max_retries=0,  # we do our own retrying with customized exponential backoff
                 http_client=httpx_client
             )

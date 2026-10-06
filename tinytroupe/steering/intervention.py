@@ -168,7 +168,8 @@ class Intervention:
         if self.propositional_precondition is not None:
             if self.propositional_precondition_threshold is not None:
                 score = self.propositional_precondition.score(target=self.targets)
-                if score >= self.propositional_precondition_threshold:
+                # same meaning as the boolean branch: fire when the proposition holds (score at/above threshold)
+                if score is None or score < self.propositional_precondition_threshold:
                     self._last_propositional_precondition_check = False
             else:
                 if not self.propositional_precondition.check(target=self.targets):
@@ -223,7 +224,8 @@ class Intervention:
     def set_propositional_precondition(self, proposition:Proposition, threshold:int=None):
         """
         Set a propositional precondition using the Proposition class,
-        optionally with a score threshold.
+        optionally with a score threshold. If a threshold is given, the precondition holds
+        when the proposition's score is >= threshold (scores go from 0 to 9).
         """
         
         self.propositional_precondition = proposition

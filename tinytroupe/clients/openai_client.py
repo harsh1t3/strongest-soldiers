@@ -2,9 +2,10 @@ import configparser
 import json
 import logging
 import os
+import tempfile
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from typing import Union
 
 import httpx
@@ -31,12 +32,31 @@ class LLMCacheBase:
     Subclasses inherit cache save/load functionality and the set_api_cache method.
     """
 
+    # Guards api_cache against concurrent agent threads; hold it while reading, adding or saving entries.
+    # ponytail: one lock shared by every instance that doesn't set its own (OpenAIClient sets a per-instance one)
+    _cache_lock = threading.RLock()
+
     def _save_cache(self):
         """
         Saves the API cache to disk as a JSON file.
+        The file is replaced atomically, so a crash mid-write can't leave a truncated cache behind.
         """
-        with open(self.cache_file_name, "w", encoding="utf-8") as f:
-            json.dump(self.api_cache, f, ensure_ascii=False)
+        cache_path = os.path.abspath(self.cache_file_name)
+        with self._cache_lock:
+            # the temp file must be in the same directory (same filesystem) for os.replace to be atomic
+            fd, temp_path = tempfile.mkstemp(
+                dir=os.path.dirname(cache_path), prefix=os.path.basename(cache_path) + ".", suffix=".tmp"
+            )
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(self.api_cache, f, ensure_ascii=False)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(temp_path, cache_path)
+            except BaseException:
+                with suppress(OSError):
+                    os.remove(temp_path)
+                raise
 
     def _load_cache(self):
         """
@@ -47,7 +67,12 @@ class LLMCacheBase:
                 with open(self.cache_file_name, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(f"Cache file exists but could not be loaded: {e}. Starting with empty cache.")
+                # keep the unreadable file aside: the next save would otherwise overwrite it for good
+                backup = self.cache_file_name + ".corrupt"
+                if os.path.getsize(self.cache_file_name) > 0:
+                    with suppress(OSError):
+                        os.replace(self.cache_file_name, backup)
+                logger.warning(f"Cache file exists but could not be loaded: {e}. Starting with empty cache (unreadable file moved to {backup}).")
                 return {}
         return {}
 
@@ -177,6 +202,7 @@ class OpenAIClient(LLMCacheBase):
         model="model",
         temperature="temperature",
         max_completion_tokens="max_completion_tokens",
+        top_p="top_p",
         frequency_penalty="frequency_penalty",
         presence_penalty="presence_penalty",
         timeout="timeout",
@@ -237,20 +263,27 @@ class OpenAIClient(LLMCacheBase):
             NonTerminalError,
         )
 
+        # backoff grows separately, so the fixed pre-request throttle below keeps using waiting_time
+        backoff_time = waiting_time
+
         def aux_exponential_backoff():
-            nonlocal waiting_time
+            nonlocal backoff_time
+
+            # no point in waiting if there won't be another attempt
+            if i >= max_attempts:
+                return
 
             # in case waiting time was initially set to 0
-            if waiting_time <= 0:
-                waiting_time = 2
+            if backoff_time <= 0:
+                backoff_time = 2
 
             logger.info(
-                f"Request failed. Waiting {waiting_time} seconds between requests..."
+                f"Request failed. Waiting {backoff_time} seconds between requests..."
             )
-            time.sleep(waiting_time)
+            time.sleep(backoff_time)
 
             # exponential backoff
-            waiting_time = waiting_time * exponential_backoff_factor
+            backoff_time = backoff_time * exponential_backoff_factor
 
         # setup the OpenAI configurations for this client.
         self._setup_from_config()
@@ -337,14 +370,14 @@ class OpenAIClient(LLMCacheBase):
                                     if hasattr(self, "api_cache")
                                     else None
                                 )
+                                # if another thread cached it meanwhile, keep our fresh response: the cached
+                                # entry is in the storage format, not a response object
                                 if existing is None:
                                     # Convert to cacheable format before storing
                                     cacheable_response = self._to_cacheable_format(response)
                                     if cacheable_response is not None:
                                         self.api_cache[cache_key] = cacheable_response
                                         self._save_cache()
-                                else:
-                                    response = existing
 
                     raw_message = self._raw_model_response_extractor(response)
 
@@ -379,6 +412,12 @@ class OpenAIClient(LLMCacheBase):
                 # so we return None right away
                 return None
 
+            except (openai.AuthenticationError, openai.PermissionDeniedError,
+                    openai.NotFoundError, openai.UnprocessableEntityError) as e:
+                # wrong key, no access or unknown model: retrying won't help
+                logger.error(f"[{i}] {type(e).__name__}, won't retry: {e}")
+                return None
+
             except openai.RateLimitError:
                 logger.warning(
                     f"[{i}] Rate limit error, waiting a bit and trying again."
@@ -405,19 +444,14 @@ class OpenAIClient(LLMCacheBase):
         Calls the OpenAI API with the given parameters. Subclasses should
         override this method to implement their own API calls.
         """
+        # work on a copy: the caller reuses these params on retries and for the cache key
+        chat_api_params = dict(chat_api_params)
+
         # adjust parameters depending on the model
         if self._is_reasoning_model(model):
-            # Reasoning models have slightly different parameters
-            del chat_api_params["stream"]
-            del chat_api_params["temperature"]
-            del chat_api_params["top_p"]
-            del chat_api_params["frequency_penalty"]
-            del chat_api_params["presence_penalty"]
-
-            chat_api_params["max_completion_tokens"] = chat_api_params[
-                "max_completion_tokens"
-            ]
-            del chat_api_params["max_completion_tokens"]
+            # Reasoning models have slightly different parameters (None ones were already dropped)
+            for unsupported in ["stream", "temperature", "top_p", "frequency_penalty", "presence_penalty", "max_completion_tokens"]:
+                chat_api_params.pop(unsupported, None)
 
             chat_api_params["reasoning_effort"] = config_manager.get("reasoning_effort")
 
@@ -736,9 +770,11 @@ class OpenAIClient(LLMCacheBase):
         print(f"Model API calls:      {stats['model_calls']:,}")
         print(f"Cached calls:         {stats['cached_calls']:,}")
         print(f"Total calls:          {stats['model_calls'] + stats['cached_calls']:,}")
-        if stats["model_calls"] > 0:
+        total_calls = stats["model_calls"] + stats["cached_calls"]
+        if total_calls > 0:
+            # token totals include the usage recorded in cached responses, so average over all calls
             print(
-                f"Avg tokens per call:  {stats['total_tokens'] / stats['model_calls']:.1f}"
+                f"Avg tokens per call:  {stats['total_tokens'] / total_calls:.1f}"
             )
         print("=" * 60 + "\n")
 

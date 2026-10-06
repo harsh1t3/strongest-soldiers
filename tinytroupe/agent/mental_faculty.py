@@ -107,7 +107,7 @@ class CustomMentalFaculty(TinyMentalFaculty):
 
         # [<constraint1>, <constraint2>, ...]
         if constraints is None:
-            self.constraints = {}
+            self.constraints = []
         else:
             self.constraints = constraints
 
@@ -318,11 +318,12 @@ class FilesAndWebGroundingFaculty(TinyMentalFaculty):
         if action["type"] == "CONSULT" and action["content"] is not None:
             target_name = action["content"]
 
+            # each connector returns a list of matches, possibly empty
             results = []
-            results.append(
+            results.extend(
                 self.local_files_grounding_connector.retrieve_by_name(target_name)
             )
-            results.append(self.web_grounding_connector.retrieve_by_name(target_name))
+            results.extend(self.web_grounding_connector.retrieve_by_name(target_name))
 
             if len(results) > 0:
                 agent.think(f"I have read the following document: \n{results}")

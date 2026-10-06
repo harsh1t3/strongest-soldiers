@@ -1,6 +1,3 @@
-import IPython
-from IPython.display import display, Javascript
-
 from tinytroupe.experimentation import logger
 from tinytroupe.experimentation.statistical_tests import StatisticalTester
 from tinytroupe.utils import merge_dicts
@@ -43,37 +40,21 @@ class InPlaceExperimentRunner:
             if "finished_experiments" not in self.experiment_config:
                 self.experiment_config["finished_experiments"] = []
             
+            finished = self.experiment_config["finished_experiments"]
             current_experiment = self.experiment_config.get("active_experiment")
-            if current_experiment:
-                # Auto-finish current experiment if not already finished
-                if current_experiment not in self.experiment_config["finished_experiments"]:
-                    self.experiment_config["finished_experiments"].append(current_experiment)
-                
-                current_index = experiments.index(current_experiment)
-                next_index = current_index + 1
-                
-                # Find the next unfinished experiment
-                while next_index < len(experiments):
-                    next_experiment = experiments[next_index]
-                    if next_experiment not in self.experiment_config["finished_experiments"]:
-                        self.experiment_config["active_experiment"] = next_experiment
-                        break
-                    next_index += 1
-                
-                # If we didn't find an unfinished experiment, mark all as finished
-                if next_index >= len(experiments):
-                    self.experiment_config["active_experiment"] = None
-                    self.experiment_config["finished_all_experiments"] = True
-            else:
-                # Start with the first unfinished experiment
-                for exp in experiments:
-                    if exp not in self.experiment_config["finished_experiments"]:
-                        self.experiment_config["active_experiment"] = exp
-                        break
-                else:
-                    # If all experiments are finished
-                    self.experiment_config["active_experiment"] = None
-                    self.experiment_config["finished_all_experiments"] = True
+            # Auto-finish current experiment if not already finished
+            if current_experiment and current_experiment not in finished:
+                finished.append(current_experiment)
+
+            # Search after the current experiment first, then wrap around, so that experiments before
+            # one chosen via fix_active_experiment() are not skipped.
+            start = experiments.index(current_experiment) + 1 if current_experiment in experiments else 0
+            next_experiment = next(
+                (exp for exp in experiments[start:] + experiments[:start] if exp not in finished), None
+            )
+            self.experiment_config["active_experiment"] = next_experiment
+            if next_experiment is None:
+                self.experiment_config["finished_all_experiments"] = True
             
             self._save_config()
         
@@ -181,15 +162,26 @@ class InPlaceExperimentRunner:
         Returns:
             dict: Results of the statistical tests.
         """
-        if not self.experiment_config["experiments"]:
+        experiments = self.experiment_config["experiments"]
+        if not experiments:
             raise ValueError("No experiments available to run statistical tests.")
-        
-        # pop control from cloned list of experiment results
-        experiment_results = self.experiment_config["experiments"].copy()
-        control_experiment_results = {control_experiment_name: experiment_results.pop(control_experiment_name, None)}
+        if control_experiment_name not in experiments:
+            raise ValueError(f"Experiment '{control_experiment_name}' does not exist.")
+        if "results" not in experiments[control_experiment_name]:
+            raise ValueError(f"Control experiment '{control_experiment_name}' has no results to compare against.")
 
-        tester = StatisticalTester(control_experiment_data=control_experiment_results, 
-                                   treatments_experiment_data=experiment_results,
+        # all other experiments are treatments; those without results yet can't be compared
+        treatments_experiment_data = {}
+        for name, data in experiments.items():
+            if name == control_experiment_name:
+                continue
+            if "results" in data:
+                treatments_experiment_data[name] = data
+            else:
+                logger.warning(f"Experiment '{name}' has no results, skipping it in the statistical tests.")
+
+        tester = StatisticalTester(control_experiment_data={control_experiment_name: experiments[control_experiment_name]},
+                                   treatments_experiment_data=treatments_experiment_data,
                                    results_key="results")
         
         results = tester.run_test()

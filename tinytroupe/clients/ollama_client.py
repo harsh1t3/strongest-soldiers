@@ -20,7 +20,8 @@ class OllamaClient(LLMCacheBase):
     )
     def __init__(self, cache_api_calls=None, cache_file_name=None) -> None:
         logger.debug("Initializing OllamaClient")
-        self.base_url = config_manager.get("base_url", "http://localhost:11434/v1")
+        # the key exists with value None when unset, so a get() default would never apply
+        self.base_url = config_manager.get("base_url") or "http://localhost:11434/v1"
         logger.debug(f"base_url set to {self.base_url}")
 
         # Set up caching via the base class method
@@ -111,9 +112,9 @@ class OllamaClient(LLMCacheBase):
 
                 # Check cache first
                 cache_key = str((model, chat_api_params))
-                if self.cache_api_calls and (cache_key in self.api_cache):
-                    response = self.api_cache[cache_key]
-                else:
+                with self._cache_lock:  # agent threads share this client and its cache
+                    response = self.api_cache.get(cache_key) if self.cache_api_calls else None
+                if response is None:
                     logger.info(
                         f"Waiting {waiting_time} seconds before next API request..."
                     )
@@ -129,8 +130,9 @@ class OllamaClient(LLMCacheBase):
 
                     # Cache the response if caching is enabled
                     if self.cache_api_calls:
-                        self.api_cache[cache_key] = response
-                        self._save_cache()
+                        with self._cache_lock:
+                            self.api_cache[cache_key] = response
+                            self._save_cache()
 
                 end_time = time.monotonic()
                 logger.debug(

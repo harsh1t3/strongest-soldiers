@@ -19,12 +19,17 @@ class TinyWordProcessor(TinyTool):
             The result **MUST** be at least 5 times larger than the original content in terms of characters - do whatever it takes to make it this long and detailed.
             """
                 
-            content = self.enricher.enrich_content(requirements=requirements, 
-                                                    content=content, 
-                                                    content_type="Document", 
+            enriched_content = self.enricher.enrich_content(requirements=requirements,
+                                                    content=content,
+                                                    content_type="Document",
                                                     context_info=None,
-                                                    context_cache=None, verbose=False)    
-            
+                                                    context_cache=None, verbose=False)
+            # the enricher returns None when the LLM call fails: keep the agent's own draft rather than exporting None
+            if enriched_content is not None:
+                content = enriched_content
+            else:
+                logger.warning(f"Could not enrich document '{title}', writing the original content instead.")
+
         if self.exporter is not None:
             if author is not None:
                 artifact_name = f"{title}.{author}"

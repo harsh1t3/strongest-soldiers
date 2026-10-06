@@ -32,6 +32,7 @@ Example usage:
 import ipywidgets as widgets
 from IPython.display import display, HTML
 import datetime
+import html
 import threading
 import tinytroupe
 import time
@@ -331,6 +332,8 @@ class AgentChatJupyterWidget:
         else:
             messages_html = []
             for entry in self.conversation_history:
+                # messages are plain text (user input, LLM output), never markup: escape before putting into HTML
+                entry = {**entry, 'message': html.escape(str(entry['message'])), 'sender': html.escape(str(entry.get('sender', '')))}
                 if entry['type'] == 'user':
                     messages_html.append(f"""
                     <div style='margin: 5px 0; padding: 8px; background-color: #e3f2fd; border-radius: 10px; text-align: right;'>

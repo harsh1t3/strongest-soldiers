@@ -1,5 +1,4 @@
-# Runs the full TinyTroupe test suite (including slow tests).
-# Runs on the 1st of each month (if there were recent commits), or manually.
+# Runs the full TinyTroupe test suite (including slow tests, real LLM calls) on demand.
 #
 # Required secret:
 #   OPENAI_API_KEY — an OpenAI API key with access to the models configured
@@ -8,9 +7,10 @@
 name: All Tests
 
 on:
-  schedule:
-    - cron: '0 6 1 * *'      # 1st of each month at 06:00 UTC
-  workflow_dispatch:          # manual trigger always available
+  workflow_dispatch:          # needs the OPENAI_API_KEY secret, so it runs only when triggered manually
+
+permissions:
+  contents: read
 
 jobs:
   all-tests:
@@ -20,18 +20,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0      # full history needed for commit date check
-
-      - name: Skip if no commits in the last 30 days
-        if: github.event_name == 'schedule'
-        run: |
-          LAST_COMMIT=$(git log -1 --format=%ct)
-          THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
-          if [ "$LAST_COMMIT" -lt "$THIRTY_DAYS_AGO" ]; then
-            echo "No commits in the last 30 days — skipping."
-            exit 1
-          fi
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -42,7 +30,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y pandoc
 
       - name: Install dependencies
-        run: pip install -e .
+        run: pip install -e ".[dev]"
+
+      - name: Use OpenAI for the LLM tests
+        # the repository defaults to API_TYPE=claude_code, which needs a logged-in Claude Code CLI that runners
+        # don't have; these tests run against OpenAI (and its response cache) instead
+        run: sed -i -e 's/^API_TYPE=.*/API_TYPE=openai/' -e 's/^MODEL=.*/MODEL=gpt-5-mini/' -e 's/^REASONING_MODEL=.*/REASONING_MODEL=o3-mini/' config.ini
 
       - name: Restore API cache
         uses: actions/cache/restore@v4
@@ -55,7 +48,7 @@ jobs:
       - name: Run all tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: pytest -s --use_cache
+        run: pytest -s --use_cache --cov=tinytroupe --cov-report=html --cov-report=xml --junit-xml=test-results.xml --html=test-report.html --self-contained-html
 
       - name: Save API cache
         if: always()

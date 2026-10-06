@@ -69,7 +69,7 @@ class JsonSerializableRegistry:
         if file_path:
             # Create directories if they do not exist
             import os
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            os.makedirs(os.path.dirname(file_path) or ".", exist_ok=True)
             with open(file_path, 'w', encoding='utf-8', errors='replace') as f:
                 json.dump(result, f, indent=4)
         
@@ -119,14 +119,15 @@ class JsonSerializableRegistry:
                 if key in custom_deserializers:
                     # Use custom initializer if provided
                     setattr(instance, key, custom_deserializers[key](value))
-                elif isinstance(value, dict) and serialization_type_field_name in value:
-                    # Assume it's another JsonSerializableRegistry object
+                elif isinstance(value, dict) and value.get(serialization_type_field_name) in JsonSerializableRegistry.class_mapping:
+                    # It's another JsonSerializableRegistry object. Checking the tag names a registered class matters
+                    # when the tag field is a common key such as "type" (e.g., memory items have "type": "action").
                     setattr(instance, key, JsonSerializableRegistry.from_json(value, serialization_type_field_name=serialization_type_field_name))
                 elif isinstance(value, list):
                     # Handle collections, recursively deserialize if items are JsonSerializableRegistry objects
                     deserialized_collection = []
                     for item in value:
-                        if isinstance(item, dict) and serialization_type_field_name in item:
+                        if isinstance(item, dict) and item.get(serialization_type_field_name) in JsonSerializableRegistry.class_mapping:
                             deserialized_collection.append(JsonSerializableRegistry.from_json(item, serialization_type_field_name=serialization_type_field_name))
                         else:
                             deserialized_collection.append(copy.deepcopy(item))
@@ -235,8 +236,10 @@ def merge_dicts(current, additions, overwrite=False, error_on_conflict=True, rem
     Returns:
     - dict: A new dictionary with merged values.
     """
-    merged = current.copy()  # Create a copy of the current dictionary to avoid altering it
+    # Deep copies, once: nested lists are extended in place below, and must not be shared with (or alter) the inputs
+    return _merge_dicts_in_place(copy.deepcopy(current), copy.deepcopy(additions), overwrite, error_on_conflict, remove_duplicates)
 
+def _merge_dicts_in_place(merged, additions, overwrite, error_on_conflict, remove_duplicates):
     for key in additions:
         if key in merged:
             # If the current value is None, directly assign the new value
@@ -244,7 +247,7 @@ def merge_dicts(current, additions, overwrite=False, error_on_conflict=True, rem
                 merged[key] = additions[key]
             # If both values are dictionaries, merge them recursively
             elif isinstance(merged[key], dict) and isinstance(additions[key], dict):
-                merged[key] = merge_dicts(merged[key], additions[key], overwrite, error_on_conflict)
+                merged[key] = _merge_dicts_in_place(merged[key], additions[key], overwrite, error_on_conflict, remove_duplicates)
             # If both values are lists, concatenate them and remove duplicates
             elif isinstance(merged[key], list) and isinstance(additions[key], list):
                 merged[key].extend(additions[key])
@@ -284,8 +287,8 @@ def remove_duplicate_items(lst):
         result = []
         for item in lst:
             if isinstance(item, dict):
-                # Convert dict to a frozenset of its items to make it hashable
-                item_key = frozenset(item.items())
+                # Canonical string form, since dict values may themselves be unhashable (e.g., lists)
+                item_key = json.dumps(item, sort_keys=True, default=str)
             else:
                 item_key = item
 

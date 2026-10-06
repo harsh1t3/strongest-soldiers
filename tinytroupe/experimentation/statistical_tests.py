@@ -191,7 +191,7 @@ class StatisticalTester:
             'control_mean': control_mean,
             'treatment_mean': treatment_mean,
             'mean_difference': mean_diff,
-            'percent_change': (mean_diff / control_mean * 100) if control_mean != 0 else float('inf'),
+            'percent_change': _percent_change(mean_diff, control_mean),
             't_statistic': t_stat,
             'p_value': p_value,
             'confidence_interval': (ci_lower, ci_upper),
@@ -244,7 +244,7 @@ class StatisticalTester:
             'control_mean': control_mean,
             'treatment_mean': treatment_mean,
             'mean_difference': mean_diff,
-            'percent_change': (mean_diff / control_mean * 100) if control_mean != 0 else float('inf'),
+            'percent_change': _percent_change(mean_diff, control_mean),
             't_statistic': t_stat,
             'p_value': p_value,
             'confidence_interval': (ci_lower, ci_upper),
@@ -274,29 +274,25 @@ class StatisticalTester:
         
         # Calculate common language effect size
         # (probability that a randomly selected value from treatment is greater than control)
-        count = 0
-        for tc in treatment:
-            for cc in control:
-                if tc > cc:
-                    count += 1
-        cles = count / (len(treatment) * len(control))
+        # (ties count as 0.5; U of the first sample already counts control > treatment pairs)
+        cles = 1 - u_stat / (len(treatment) * len(control))
         
         # Calculate approximate confidence interval using bootstrap
         try:
             from scipy.stats import bootstrap
             
             def median_diff_func(x, y):
-                return np.median(x) - np.median(y)
+                return np.median(y) - np.median(x)  # treatment - control, same sign as median_diff
             
             res = bootstrap((control, treatment), median_diff_func, 
                             confidence_level=1-alpha, 
                             n_resamples=1000,
                             random_state=42)
             ci_lower, ci_upper = res.confidence_interval
-        except ImportError:
-            # If bootstrap is not available, return None for confidence interval
+        except (ImportError, ValueError) as e:
+            # bootstrap unavailable, or samples too small (n < 2)
             ci_lower, ci_upper = None, None
-            logger.warning("SciPy bootstrap not available, skipping confidence interval calculation")
+            logger.warning(f"Skipping bootstrap confidence interval calculation: {e}")
         
         # Determine if the result is significant
         significant = p_value < alpha
@@ -306,7 +302,7 @@ class StatisticalTester:
             'control_median': control_median,
             'treatment_median': treatment_median,
             'median_difference': median_diff,
-            'percent_change': (median_diff / control_median * 100) if control_median != 0 else float('inf'),
+            'percent_change': _percent_change(median_diff, control_median),
             'u_statistic': u_stat,
             'p_value': p_value,
             'confidence_interval': (ci_lower, ci_upper) if ci_lower is not None else None,
@@ -394,11 +390,12 @@ class StatisticalTester:
         Returns:
             dict: Dictionary with results of assumption checks for each treatment.
         """
-        if metric not in self.control_experiment_data:
+        control_metrics = next(iter(self.control_experiment_data.values()))
+        if metric not in control_metrics:
             raise ValueError(f"Metric '{metric}' not found in control data")
             
         results = {}
-        control_values = np.array(self.control_experiment_data[metric], dtype=float)
+        control_values = np.array(control_metrics[metric], dtype=float)
         
         # Check normality of control
         control_shapiro = stats.shapiro(control_values)
@@ -581,7 +578,18 @@ def cohen_d(x: Union[list, np.ndarray], y: Union[list, np.ndarray]) -> float:
     pooled_sd = np.sqrt(((nx - 1) * sx**2 + (ny - 1) * sy**2) / (nx + ny - 2))
     
     # Cohen's d
-    return (my - mx) / pooled_sd if pooled_sd > 0 else 0
+    if nx + ny < 3 or np.isnan(pooled_sd):
+        return float('nan')  # not enough data to estimate variance
+    if pooled_sd == 0:
+        return 0.0 if my == mx else float(np.copysign(np.inf, my - mx))
+    return (my - mx) / pooled_sd
+
+
+def _percent_change(diff: float, base: float) -> float:
+    """Relative change w.r.t. the magnitude of the base, so the sign always follows diff."""
+    if base == 0:
+        return 0.0 if diff == 0 else float('nan')
+    return diff / abs(base) * 100
 
 
 def convert_to_serializable(obj):

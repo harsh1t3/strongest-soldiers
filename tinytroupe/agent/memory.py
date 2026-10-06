@@ -6,7 +6,7 @@ from llama_index.core import Document
 
 import tinytroupe.utils as utils
 from tinytroupe.agent import logger
-from tinytroupe.agent.grounding import BaseSemanticGroundingConnector
+from tinytroupe.agent.grounding import BaseSemanticGroundingConnector, load_file_documents, load_web_documents
 from tinytroupe.agent.mental_faculty import TinyMentalFaculty
 
 #######################################################################################################################
@@ -306,7 +306,7 @@ class EpisodicMemory(TinyMemory):
         if max_prefix_to_clear is not None:
             self.memory = self.memory[max_prefix_to_clear:]
 
-        if max_suffix_to_clear is not None:
+        if max_suffix_to_clear:  # [:-0] would clear everything
             self.memory = self.memory[:-max_suffix_to_clear]
 
         if max_prefix_to_clear is None and max_suffix_to_clear is None:
@@ -479,7 +479,8 @@ class EpisodicMemory(TinyMemory):
             if item_type is None
             else self.filter_by_item_type(self._memory_with_current_buffer(), item_type)
         )
-        memories = memories[-n:] if n is not None else memories
+        if n is not None:
+            memories = memories[-n:] if n > 0 else []  # [-0:] would return everything
 
         return omisssion_info + memories
 
@@ -521,6 +522,25 @@ class SemanticMemory(TinyMemory):
             # TODO remove?
             # self.semantic_grounding_connector.add_documents(self._build_documents_from(self.memories))
 
+    #
+    # Loading external documents (used by TinyPerson.read_document*_from_*)
+    #
+    def add_documents_path(self, documents_path: str) -> None:
+        """Loads every document in a folder into semantic memory."""
+        self.semantic_grounding_connector.add_documents(load_file_documents(folder_path=documents_path))
+
+    def add_document_path(self, document_path: str) -> None:
+        """Loads a single document file into semantic memory."""
+        self.semantic_grounding_connector.add_documents(load_file_documents(file_path=document_path))
+
+    def add_web_urls(self, web_urls: list) -> None:
+        """Loads the contents of web pages into semantic memory."""
+        self.semantic_grounding_connector.add_documents(load_web_documents(web_urls))
+
+    def add_web_url(self, web_url: str) -> None:
+        """Loads the contents of a web page into semantic memory."""
+        self.add_web_urls([web_url])
+
     def _preprocess_value_for_storage(self, value: dict) -> Any:
         logger.debug(f"Preprocessing value for storage: {value}")
 
@@ -535,38 +555,38 @@ class SemanticMemory(TinyMemory):
             }
 
             # Refine the content of the engram is built based on the type of the value to make it more meaningful.
-            if value["type"] == "action":
+            if value.get("type") == "action":
                 engram["content"] = (
                     f"# Action performed\n"
                     + f"I have performed the following action at date and time {value['simulation_timestamp']}:\n\n"
                     + f" {value['content']}"
                 )
 
-            elif value["type"] == "stimulus":
+            elif value.get("type") == "stimulus":
                 engram["content"] = (
                     f"# Stimulus\n"
                     + f"I have received the following stimulus at date and time {value['simulation_timestamp']}:\n\n"
                     + f" {value['content']}"
                 )
-            elif value["type"] == "feedback":
+            elif value.get("type") == "feedback":
                 engram["content"] = (
                     f"# Feedback\n"
                     + f"I have received the following feedback at date and time {value['simulation_timestamp']}:\n\n"
                     + f" {value['content']}"
                 )
-            elif value["type"] == "consolidated":
+            elif value.get("type") == "consolidated":
                 engram["content"] = (
                     f"# Consolidated Memory\n"
                     + f"I have consolidated the following memory at date and time {value['simulation_timestamp']}:\n\n"
                     + f" {value['content']}"
                 )
-            elif value["type"] == "reflection":
+            elif value.get("type") == "reflection":
                 engram["content"] = (
                     f"# Reflection\n"
                     + f"I have reflected on the following memory at date and time {value['simulation_timestamp']}:\n\n"
                     + f" {value['content']}"
                 )
-            elif value["type"] == "image_description":
+            elif value.get("type") == "image_description":
                 engram["content"] = (
                     f"# Image Description\n"
                     + f"I have seen the following image(s) at date and time {value['simulation_timestamp']}:\n\n"

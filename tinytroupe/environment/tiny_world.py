@@ -37,9 +37,9 @@ class TinyWorld:
     def __init__(
         self,
         name: str = None,
-        agents=[],
+        agents=None,
         initial_datetime=None,
-        interventions=[],
+        interventions=None,
         broadcast_if_no_target=True,
         max_additional_targets_to_display=3,
     ):
@@ -74,7 +74,7 @@ class TinyWorld:
         self.agents = []
         self.name_to_agent = {}  # {agent_name: agent, agent_name_2: agent_2, ...}
 
-        self._interventions = interventions
+        self._interventions = list(interventions) if interventions else []  # own list, never shared between worlds
 
         # the buffer of communications that have been displayed so far, used for
         # saving these communications to another output form later (e.g., caching)
@@ -92,7 +92,12 @@ class TinyWorld:
         # add the environment to the list of all environments
         TinyWorld.add_environment(self)
 
-        self.add_agents(agents)
+        try:
+            self.add_agents(agents or [])
+        except Exception:
+            # don't leave an orphaned name behind that would block retrying with the same name
+            TinyWorld.all_environments.pop(self.name, None)
+            raise
 
     #######################################################################
     # Simulation control methods
@@ -181,15 +186,21 @@ class TinyWorld:
             # Wait for all futures to complete
             concurrent.futures.wait(futures.keys())
 
-            for future in futures:
-                agent = futures[future]
+            for future, agent in futures.items():
                 try:
-                    actions = future.result()
-                    agents_actions[agent.name] = actions
-                    self._handle_actions(agent, agent.pop_latest_actions())
+                    agents_actions[agent.name] = future.result()
                 except Exception as exc:
                     logger.error(
                         f"[{self.name}] Agent {name_or_empty(agent)} generated an exception: {exc}"
+                    )
+
+                # Always consume the buffer: actions committed before a failure are delivered now,
+                # not one step late. A delivery failure for one agent must not block the others.
+                try:
+                    self._handle_actions(agent, agent.pop_latest_actions())
+                except Exception as exc:
+                    logger.error(
+                        f"[{self.name}] Failed to handle actions of agent {name_or_empty(agent)}: {exc}"
                     )
 
         logger.debug(f"[{self.name}] All agents have FINISHED acting in parallel.")
@@ -267,7 +278,8 @@ class TinyWorld:
             steps (int): The number of steps to skip.
             timedelta_per_step (timedelta, optional): The time interval between steps. Defaults to None.
         """
-        self._advance_datetime(steps * timedelta_per_step)
+        if timedelta_per_step is not None:
+            self._advance_datetime(steps * timedelta_per_step)
 
     @config_manager.config_defaults(parallelize="parallel_agent_actions")
     def run_minutes(self, minutes: int, randomize_agents_order=True, parallelize=None):

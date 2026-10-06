@@ -4,7 +4,6 @@ import tinytroupe.utils as utils
 from tinytroupe.agent import logger
 from llama_index.core import  VectorStoreIndex, SimpleDirectoryReader, Document, StorageContext, load_index_from_storage
 from llama_index.core.vector_stores import SimpleVectorStore
-from llama_index.readers.web import SimpleWebPageReader
 import tempfile
 import os
 
@@ -134,6 +133,9 @@ class BaseSemanticGroundingConnector(GroundingConnector):
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Write all the persisted files to the temporary directory
                 for filename, content in index_data.items():
+                    # file names come from (possibly untrusted) JSON: never let them escape temp_dir
+                    if os.path.basename(filename) != filename or filename in ("", ".", ".."):
+                        raise ValueError(f"Invalid index file name: {filename!r}")
                     filepath = os.path.join(temp_dir, filename)
                     with open(filepath, 'w', encoding="utf-8", errors="replace") as f:
                         f.write(content)
@@ -267,21 +269,10 @@ class BaseSemanticGroundingConnector(GroundingConnector):
         Clones the specified document, replacing the text with the new text.
         Here, "document" refer to the llama-index's data structure that stores a unit of content.
         """
-        new_doc = Document(
-            text=new_text,
-            id_=original_doc.id_,
-            metadata=original_doc.metadata,
-            embedding=original_doc.embedding,
-            excluded_llm_metadata_keys=original_doc.excluded_llm_metadata_keys,
-            excluded_embed_metadata_keys=original_doc.excluded_embed_metadata_keys,
-            metadata_seperator=original_doc.metadata_seperator,
-            metadata_template=original_doc.metadata_template,
-            text_template=original_doc.text_template,
-            relationships=original_doc.relationships,
-            start_char_idx=original_doc.start_char_idx,
-            end_char_idx=original_doc.end_char_idx,
-        )
-        return new_doc    
+        # copy every field (their names vary across llama-index versions, e.g. metadata_seperator -> metadata_separator)
+        new_doc = original_doc.model_copy(deep=True)
+        new_doc.set_content(new_text)
+        return new_doc
     
     @staticmethod
     def _set_internal_id_to_documents(documents:list, external_attribute_name:str ="file_name") -> None:
@@ -296,6 +287,25 @@ class BaseSemanticGroundingConnector(GroundingConnector):
 
         return documents
     
+
+def load_file_documents(folder_path: str = None, file_path: str = None) -> list:
+    """Loads the documents in a folder, or a single file, tagged for semantic memory."""
+    # for PDF files, please note that the document will be split into pages: https://github.com/run-llama/llama_index/issues/15903
+    reader = SimpleDirectoryReader(folder_path) if folder_path is not None else SimpleDirectoryReader(input_files=[file_path])
+    return BaseSemanticGroundingConnector._set_internal_id_to_documents(reader.load_data(), "file_name")
+
+
+def load_web_documents(web_urls: list) -> list:
+    """Fetches web pages as documents, tagged for semantic memory."""
+    # optional dependency: the web readers package pulls in browsers/scrapers (playwright, selenium, ...)
+    try:
+        from llama_index.readers.web import SimpleWebPageReader
+    except ImportError as e:
+        raise ImportError('Reading web pages needs the optional web dependencies: pip install "tinytroupe[web]"') from e
+
+    documents = SimpleWebPageReader(html_to_text=True).load_data(web_urls)
+    return BaseSemanticGroundingConnector._set_internal_id_to_documents(documents, "url")
+
 
 @utils.post_init
 class LocalFilesGroundingConnector(BaseSemanticGroundingConnector):
@@ -345,21 +355,15 @@ class LocalFilesGroundingConnector(BaseSemanticGroundingConnector):
         if folder_path not in self.loaded_folders_paths:
             self._mark_folder_as_loaded(folder_path)
 
-            # for PDF files, please note that the document will be split into pages: https://github.com/run-llama/llama_index/issues/15903
-            new_files = SimpleDirectoryReader(folder_path).load_data()
-            BaseSemanticGroundingConnector._set_internal_id_to_documents(new_files, "file_name")
-
-            self.add_documents(new_files)
+            self.add_documents(load_file_documents(folder_path=folder_path))
     
     def add_file_path(self, file_path:str) -> None:
         """
         Adds a path to a file used for grounding.
         """
-        # a trick to make SimpleDirectoryReader work with a single file
-        new_files = SimpleDirectoryReader(input_files=[file_path]).load_data()
-        
+        new_files = load_file_documents(file_path=file_path)
         logger.debug(f"Adding the following file to grounding index: {new_files}")
-        BaseSemanticGroundingConnector._set_internal_id_to_documents(new_files, "file_name")
+        self.add_documents(new_files)
     
     def _mark_folder_as_loaded(self, folder_path:str) -> None:
         if folder_path not in self.loaded_folders_paths:
@@ -401,9 +405,7 @@ class WebPagesGroundingConnector(BaseSemanticGroundingConnector):
             self._mark_web_url_as_loaded(url)
 
         if len(filtered_web_urls) > 0:
-            new_documents = SimpleWebPageReader(html_to_text=True).load_data(filtered_web_urls)
-            BaseSemanticGroundingConnector._set_internal_id_to_documents(new_documents, "url")
-            self.add_documents(new_documents)
+            self.add_documents(load_web_documents(filtered_web_urls))
     
     def add_web_url(self, web_url:str) -> None:
         """

@@ -207,21 +207,8 @@ class Profiler:
 
         # -------------------------- helpers --------------------------
         def _extract_path(agent: Dict[str, Any], path: List[str]) -> Any:
-            # Simplified access: rely on TinyPerson.get (supports dot notation) when available.
-            joined = ".".join(path)
-            if hasattr(agent, "get") and callable(getattr(agent, "get")):
-                try:
-                    return agent.get(joined)
-                except Exception:
-                    pass
-            # Fallback for plain dict agents
-            cur: Any = agent
-            for seg in path:
-                if isinstance(cur, dict) and seg in cur:
-                    cur = cur[seg]
-                else:
-                    return None
-            return cur
+            # TinyPerson.get for agents, dot-path traversal for plain dicts (dict.get can't follow nested paths)
+            return self._get_nested_attribute(agent, ".".join(path))
 
         def _collect_list_per_agent(path: List[str]) -> List[List[str]]:
             data: List[List[str]] = []
@@ -682,7 +669,7 @@ class Profiler:
         )
         for ag in self.agents:
             found: List[str] = []
-            rels = ag.get("relationships", []) if isinstance(ag, dict) else []
+            rels = _extract_path(ag, ["relationships"])
             if isinstance(rels, list):
                 for r in rels:
                     if isinstance(r, dict):
@@ -1798,6 +1785,12 @@ class Profiler:
             "attribute_comparisons": {},
         }
 
+        def _most_frequent(dist, n=3) -> dict:
+            # distributions are index-sorted (for plotting); a stable sort keeps index order among ties
+            if not isinstance(dist, pd.Series):
+                return {}  # empty distribution (an empty DataFrame)
+            return dist.sort_values(ascending=False, kind="stable").head(n).to_dict()
+
         # Compare distributions for each attribute
         for attr in attributes:
             if (
@@ -1812,8 +1805,8 @@ class Profiler:
                 comparison["attribute_comparisons"][attr] = {
                     "current_unique_values": len(current_dist),
                     "comparison_unique_values": len(other_dist),
-                    "current_top_3": current_dist.head(3).to_dict(),
-                    "comparison_top_3": other_dist.head(3).to_dict(),
+                    "current_top_3": _most_frequent(current_dist),
+                    "comparison_top_3": _most_frequent(other_dist),
                 }
 
         return comparison

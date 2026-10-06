@@ -9,6 +9,7 @@ against known empirical benchmarks.
 
 from typing import Dict, List, Optional, Union, Any
 import json
+import math
 import csv
 from datetime import datetime
 from pathlib import Path
@@ -255,13 +256,14 @@ class SimulationExperimentDataset(BaseModel):
         """Process proportion data for a specific metric."""
         # Normalize proportion data to 0-1 range if needed
         if isinstance(metric_data, list):
+            # If any value > 1, the whole list is percentages (0-100); deciding per item would read 1% as 100%
+            scale = 100.0 if any(isinstance(item, (int, float)) and item > 1 for item in metric_data) else 1.0
             normalized_data = []
             for item in metric_data:
                 if item is None:
                     normalized_data.append(None)
                 elif isinstance(item, (int, float)):
-                    # If value > 1, assume it's percentage (0-100), convert to proportion
-                    normalized_data.append(item / 100.0 if item > 1 else item)
+                    normalized_data.append(item / scale)
                 else:
                     normalized_data.append(item)  # Keep as-is
             self.key_results[metric_name] = normalized_data
@@ -839,6 +841,9 @@ class SimulationExperimentEmpiricalValidator:
                 else:
                     treatment_value = [v for v in treatment_value if v is not None]
                 
+                control_value, treatment_value = self._align_category_codes(
+                    metric, control, treatment, control_value, treatment_value)
+
                 # Only include metrics that have valid data points
                 if len(control_value) > 0 and len(treatment_value) > 0:
                     control_data["control"][metric] = control_value
@@ -863,6 +868,39 @@ class SimulationExperimentEmpiricalValidator:
 
         except Exception as e:
             return {"error": f"Statistical testing failed: {str(e)}"}
+
+    @staticmethod
+    def _category_mapping(dataset: SimulationExperimentDataset, metric: str) -> Optional[Dict[str, int]]:
+        """Returns the string -> code mapping used to encode a categorical/ordinal metric, if any."""
+        mapping = dataset.categorical_mappings.get(metric) or dataset.ordinal_mappings.get(metric)
+        if isinstance(mapping, dict) and mapping and all(isinstance(k, str) and isinstance(v, int) for k, v in mapping.items()):
+            return mapping
+        return None
+
+    def _align_category_codes(self, metric: str,
+                              control: SimulationExperimentDataset, treatment: SimulationExperimentDataset,
+                              control_value: list, treatment_value: list):
+        """
+        Each dataset encodes categories using only the categories it contains, so the same category
+        can get different codes on each side. Re-encode both sides with one shared mapping.
+        """
+        control_map = self._category_mapping(control, metric)
+        treatment_map = self._category_mapping(treatment, metric)
+        if control_map is None or treatment_map is None:
+            return control_value, treatment_value
+
+        categories = list(set(control_map) | set(treatment_map))
+        if metric in control.ordinal_mappings:
+            ordered = control._order_ordinal_categories(categories)
+        else:
+            ordered = sorted(categories)
+        shared = {category: code for code, category in enumerate(ordered)}
+
+        def recode(values, mapping):
+            inverse = {code: category for category, code in mapping.items()}
+            return [shared[inverse[v]] if v in inverse else v for v in values]
+
+        return recode(control_value, control_map), recode(treatment_value, treatment_map)
 
     def _perform_semantic_validation(self, 
                                    control: SimulationExperimentDataset, 
@@ -1943,11 +1981,12 @@ class SimulationExperimentEmpiricalValidator:
 
     def _extract_effect_size(self, metric_result: Dict[str, Any]) -> Optional[float]:
         """Extract effect size from statistical test result, regardless of test type."""
-        # Cohen's d for t-tests (most common)
-        if "effect_size" in metric_result:
-            return metric_result["effect_size"]
-        
-        # For tests that don't provide Cohen's d, calculate standardized effect size
+        # Every test sets "effect_size", but on different scales (CLES, eta^2, Cramer's V...),
+        # so dispatch on the test type first and convert to a Cohen's d-like measure.
+        es = metric_result.get("effect_size")
+        if es is not None and math.isnan(es):
+            return None  # undefined (e.g. too few samples), don't count it as "no effect"
+
         test_type = metric_result.get("test_type", "").lower()
         
         if "t-test" in test_type:
@@ -1980,7 +2019,10 @@ class SimulationExperimentEmpiricalValidator:
             # For KS test, the effect size is the KS statistic itself
             # It represents the maximum difference between CDFs (0 to 1)
             return metric_result.get("effect_size", metric_result.get("ks_statistic", 0.0))
-        
+
+        if es is not None:
+            return es
+
         # Fallback: try to calculate from means and standard deviations
         if all(k in metric_result for k in ["control_mean", "treatment_mean", "control_std", "treatment_std"]):
             control_mean = metric_result["control_mean"]

@@ -63,6 +63,8 @@ coverage.xml
 cover/
 test-report.*
 test-results.*
+tests/unit/test_exports/
+openai_api_cache.json
 
 # Translations
 *.mo

@@ -3,8 +3,10 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["tinytroupe"]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["tinytroupe*"]
 
 [project]
 name = "tinytroupe"
@@ -22,21 +24,34 @@ classifiers = [
 ]
 
 dependencies = [
-    "pandas", 
-    "pytest", "pytest-cov", "pytest-timeout", "pytest-html",
-    "openai >= 1.65", 
+    "pandas",
+    "numpy",
+    "openai >= 1.65",
     "httpx",
     "tiktoken",
-    "msal",
     "rich", "requests", "chevron",
-    "llama-index", "llama-index-embeddings-huggingface", "llama-index-readers-web", "llama-index-embeddings-azure-openai",
-    "pypandoc", "python-docx", "markdown",
-    "jupyter",
+    # only the llama-index parts actually used (the "llama-index" metapackage adds unused LLM clients and nltk,
+    # and no longer includes the file readers needed for PDF/DOCX grounding)
+    "llama-index-core", "llama-index-readers-file", "docx2txt",
+    "llama-index-embeddings-openai", "llama-index-embeddings-azure-openai",
+    # local embeddings for the default API_TYPE=claude_code (Claude has no embeddings API)
+    "fastembed",
+    "pypandoc", "markdown",
     "matplotlib",
     "seaborn",
     "pydantic>=2.5.0",
     "textdistance",
     "scipy"
+]
+
+[project.optional-dependencies]
+ui = ["ipywidgets", "ipython"]
+# reading web pages into agents' memory (pulls in browser/scraper packages)
+web = ["llama-index-readers-web"]
+dev = [
+    "pytest", "pytest-cov", "pytest-timeout", "pytest-html",
+    "jupyter", "nbformat", "nbconvert", "python-docx",
+    "llama-index-readers-web",  # the web grounding tests
 ]
 
 [project.urls]
@@ -58,5 +73,4 @@ markers = [
   "slow: mark a test as slow running (excluded from core tests)",
   "gpt41mini: mark a test for gpt-4.1-mini model compatibility testing",
 ]
-addopts = "--cov=tinytroupe --cov-report=html --cov-report=xml --junit-xml=test-results.xml --html=test-report.html --self-contained-html"
-timeout_exit = 0
+# coverage/HTML/JUnit reports are requested explicitly (see the CI workflows), not on every local run

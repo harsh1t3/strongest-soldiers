@@ -203,11 +203,12 @@ You can find other examples in the [examples/](./examples/) folder.
 To run the library, you need:
   - Python 3.10 or higher. We'll assume you are using [Anaconda](https://docs.anaconda.com/anaconda/install/), but you can use other Python distributions.
   - [Git](https://git-scm.com/downloads) for cloning the repository and for installing the library via `pip`.
-  - Access to Azure OpenAI Service or Open AI GPT-4 APIs. You can get access to the Azure OpenAI Service [here](https://azure.microsoft.com/en-us/products/ai-services/openai-service), and to the OpenAI API [here](https://platform.openai.com/). 
+  - [Claude Code](https://claude.com/claude-code) installed and logged in (run `claude` once and log in). This is the default LLM provider and needs **no API key**: see [Claude Code Support](#claude-code-support-default-no-api-key) below.
+  - Alternatively, access to Azure OpenAI Service or Open AI GPT-4 APIs (set `API_TYPE=openai` or `azure` in your `config.ini`). You can get access to the Azure OpenAI Service [here](https://azure.microsoft.com/en-us/products/ai-services/openai-service), and to the OpenAI API [here](https://platform.openai.com/). 
       * For Azure OpenAI Service, you will need to set the `AZURE_OPENAI_KEY` and `AZURE_OPENAI_ENDPOINT` environment variables to your API key and endpoint, respectively.
       * For OpenAI, you will need to set the `OPENAI_API_KEY` environment variable to your API key.
       * For example, on Linux/macOS: `export OPENAI_API_KEY=your-key-here`, or on Windows (PowerShell): `$env:OPENAI_API_KEY="your-key-here"`. To persist it, add it to your shell profile or use `setx OPENAI_API_KEY "your-key-here"` on Windows.
-  - By default, TinyTroupe `config.ini` is set to use OpenAI API with `gpt-5-mini` as the main model. The previous default (`gpt-4.1-mini`) is now considered legacy but is still expected to work. You can customize these values by including your own `config.ini` file in the same folder as the program or notebook you are running. An example of a `config.ini` file is provided in the [examples/](./examples/) folder.
+  - By default, TinyTroupe `config.ini` is set to use Claude Code with `sonnet` as the main model. You can customize these values by including your own `config.ini` file in the same folder as the program or notebook you are running. An example of a `config.ini` file is provided in the [examples/](./examples/) folder.
 
 >[!IMPORTANT]
 > **Content Filters**: To ensure no harmful content is generated during simulations, it is strongly recommended to use content filters whenever available at the API level. In particular, **if using Azure OpenAI, there's extensive support for content moderation, and we urge you to use it.** For details about how to do so, please consult [the corresponding Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter). If content filters are in place, and an API call is rejected by them, the library will raise an exception, as it will be unable to proceed with the simulation at that point.
@@ -216,6 +217,21 @@ To run the library, you need:
 TinyTroupe is developed primarily with OpenAI models and compatible endpoints in mind, in order to simplify development and focus on making the best use of specific models, instead of investing time to try to make it work well with any model (which might not be feasible anyway). **So, if you can, please use OpenAI models and compatible endpoints.** That said, there's significant community demand for local model support, so we are now experimenting with making this available via partial [Ollama](https://ollama.com/) support and the help of community contributors. Furtheremore, another reason to use local models would be to do research in custom models designed specifically for persona simulation -- ultimately, this might be the best reason to support such a feature. In any case, this is not currently a priority for the core team, though we are doing what we can to allow this possibility. 
 
 See [Ollama Support](./docs/guides/ollama.md) for details on how to use Ollama with TinyTroupe.
+
+### Claude Code Support (default, no API key)
+By default, TinyTroupe runs its LLM calls through the local [Claude Code](https://claude.com/claude-code) CLI (`claude -p`), using its login (e.g., your Claude subscription and its usage limits). No API key is needed, and `ANTHROPIC_API_KEY` is deliberately not passed to Claude Code, so calls are never billed to an API key by accident. Embeddings, which Claude does not provide, are computed locally with a small model (downloaded once on first use, ~70 MB).
+
+1. Install Claude Code and log in once by running `claude`. TinyTroupe finds it on your `PATH`, in `~/.local/bin`, or bundled with the Claude Code extension of VS Code, Cursor or Windsurf.
+2. Optionally pick the models in the `config.ini` of your working directory:
+    ```ini
+    [OpenAI]
+    API_TYPE=claude_code
+    MODEL=sonnet
+    REASONING_MODEL=sonnet
+    ```
+    `MODEL` accepts `sonnet`, `opus`, `haiku` or a full `claude-...` model id; other names fall back to Claude Code's default model. Use `haiku` for faster, cheaper simulations.
+
+Each LLM call starts a `claude -p` process, so it is slower than calling an API directly (a few seconds per call); `MAX_CONCURRENT_MODEL_CALLS` controls how many run at once. Sampling parameters such as `TEMPERATURE` are ignored. Simulations can make many calls, which count against your Claude Code usage limits. Reading web pages into agents' memory needs `pip install "tinytroupe[web]"`.
 
 
 ## Installation
@@ -265,9 +281,9 @@ If you want to modify TinyTroupe itself, you can install it in editable mode (i.
     git clone https://github.com/microsoft/tinytroupe
     cd tinytroupe
     ```
-2. Install the library in editable mode:
+2. Install the library in editable mode (add `[dev]` to also get the test and notebook tooling, and `[ui]` for the Jupyter chat widget):
     ```bash
-    pip install -e .
+    pip install -e ".[dev]"
     ```
 
 ## Principles 
@@ -302,7 +318,7 @@ One common source of confusion is to think all such AI agents are meant for assi
 The project is structured as follows:
   - `/tinytroupe`: contains the Python library itself. In particular:
     * Each submodule here might contain a `prompts/` folder with the prompts used to call the LLMs.
-  - `/tests`: contains the unit tests for the library. You can use the `test.bat` script to run these.
+  - `/tests`: contains the unit tests for the library. A quick, cached run is `pytest --use_cache -m "core and not slow"` (see `tests/README.md`). Note that `test.bat` refreshes the cache, i.e., it re-runs every LLM call.
   - `/examples`: contains examples that show how to use the library, mainly using Jupyter notebooks (for greater readability), but also as pure Python scripts.
   - `/data`: any data used by the examples or the library.
   - `/docs`: documentation for the project.

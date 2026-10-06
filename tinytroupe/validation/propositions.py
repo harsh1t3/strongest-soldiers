@@ -28,26 +28,20 @@ def _build_precondition_function_for_action_types(
 
     def precondition_function(target, additional_context, claim_variables):
 
-        actions = claim_variables.get("action")
+        actions = (claim_variables or {}).get("action")
+        if actions is None:
+            return True  # nothing to filter on, so let the proposition be evaluated
         if not isinstance(actions, list):
             actions = [actions]
 
         # Expect a list of actions. It suffices for one of them to satisfy the condition.
-        for action in actions:
-
-            action_type = action.get("type")
-            if check_for_presence:
-                # Check if the action type is in the list of valid action types
-                if action_type in action_types:
-                    return True
-                else:
-                    return False
-            else:
-                # Check if the action type is NOT in the list of valid action types
-                if action_type not in action_types:
-                    return True
-                else:
-                    return False
+        types = {action.get("type") for action in actions if isinstance(action, dict)}
+        if check_for_presence:
+            # Check if some action type is in the list of valid action types
+            return bool(types & set(action_types))
+        else:
+            # Check if some action type is NOT in the list of valid action types
+            return bool(types - set(action_types))
 
     return precondition_function
 

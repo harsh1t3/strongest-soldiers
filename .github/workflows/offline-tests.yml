@@ -1,0 +1,54 @@
+# Runs the tests that need no LLM access on every push and pull request.
+# No secrets or Claude Code login are needed; the LLM test suites are in core-tests.yml and all-tests.yml.
+
+name: Offline Tests
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main", "development" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.12", "3.13" ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run offline tests
+        run: >
+          pytest -q
+          tests/unit/test_offline_regressions.py
+          tests/unit/test_claude_code_client.py
+          tests/unit/test_agent_turn_regressions.py
+          tests/unit/test_llm_utils_regressions.py
+          tests/unit/test_env_factory_regressions.py
+          tests/unit/test_statistical_tests.py
+          tests/unit/test_api_cache.py
+          tests/unit/test_config.py
+          tests/unit/test_in_place_experiment_runner.py
+          tests/unit/test_tiny_tool.py
+          tests/unit/test_tiny_social_network.py
+          tests/unit/test_profiling.py

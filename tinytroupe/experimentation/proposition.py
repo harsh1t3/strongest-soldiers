@@ -226,7 +226,8 @@ class Proposition:
                     "Are you sure? Please revise your evaluation to make is correct as possible."
                 )
                 revised_value = self.llm_chat()
-                if revised_value != self.value:
+                # a failed second call returns None; keep the first answer then
+                if revised_value is not None and revised_value != self.value:
                     logger.warning(
                         f"The LLM revised its evaluation: from {self.value} to {revised_value}."
                     )
@@ -236,7 +237,8 @@ class Proposition:
             self.justification = self.llm_chat.response_justification
             self.confidence = self.llm_chat.response_confidence
 
-            self.full_evaluation_response = self.llm_chat.response_json
+            # raw JSON "value" is not type-coerced (e.g. the string "False"), so use the coerced one
+            self.full_evaluation_response = {**(self.llm_chat.response_json or {}), "value": self.value}
 
         # return the final result, either only the value or the full response
         if not return_full_response:
@@ -376,7 +378,8 @@ class Proposition:
                     "Are you sure? Please revise your evaluation to make is correct as possible."
                 )
                 revised_value = self.llm_chat()
-                if revised_value != self.value:
+                # a failed second call returns None; keep the first answer then
+                if revised_value is not None and revised_value != self.value:
                     logger.warning(
                         f"The LLM revised its evaluation: from {self.value} to {revised_value}."
                     )
@@ -386,7 +389,8 @@ class Proposition:
             self.justification = self.llm_chat.response_justification
             self.confidence = self.llm_chat.response_confidence
 
-            self.full_evaluation_response = self.llm_chat.response_json
+            # raw JSON "value" is not type-coerced (e.g. the string "False"), so use the coerced one
+            self.full_evaluation_response = {**(self.llm_chat.response_json or {}), "value": self.value}
 
         # return the final result, either only the value or the full response
         if not return_full_response:
@@ -571,6 +575,6 @@ def compute_score(
     """
 
     score = Proposition(claim, target, first_n=first_n, last_n=last_n)
-    return score.compute(
+    return score.score(
         additional_context=additional_context, return_full_response=return_full_response
     )

@@ -114,10 +114,8 @@ class TinyPerson(JsonSerializableRegistry):
         if mental_faculties is not None:
             self._mental_faculties = mental_faculties
 
-        if enable_basic_action_repetition_prevention:
-            self.enable_basic_action_repetition_prevention = (
-                enable_basic_action_repetition_prevention
-            )
+        # always assigned, so that False is honored (instead of being replaced by the default later)
+        self.enable_basic_action_repetition_prevention = enable_basic_action_repetition_prevention
 
         assert name is not None, "A TinyPerson must have a name."
         self.name = name
@@ -251,6 +249,10 @@ class TinyPerson(JsonSerializableRegistry):
         if not hasattr(self, "stimuli_count"):
             self.stimuli_count = 0
 
+        # stimuli_count when actions were last generated; if unchanged, the latest stimulus was already acted upon
+        if not hasattr(self, "_stimuli_count_at_last_act"):
+            self._stimuli_count_at_last_act = None
+
         # Image registry for the vision modality: maps image IDs (e.g. "img_1") to
         # their original references (file paths or URLs).  Persisted across serialization.
         if not hasattr(self, "_image_registry"):
@@ -277,8 +279,10 @@ class TinyPerson(JsonSerializableRegistry):
             self._rename(kwargs.get("new_agent_name"))
 
         # If auto-rename, use the given name plus some new number ...
-        if kwargs.get("auto_rename") is True:
-            new_name = self.name  # start with the current name
+        # (load_specification passes "auto_rename_agent")
+        if kwargs.get("auto_rename") is True or kwargs.get("auto_rename_agent") is True:
+            base_name = self.name
+            new_name = base_name  # start with the current name
             rename_succeeded = False
             while not rename_succeeded:
                 try:
@@ -287,7 +291,7 @@ class TinyPerson(JsonSerializableRegistry):
                     rename_succeeded = True
                 except ValueError:
                     new_id = utils.fresh_id(self.__class__.__name__)
-                    new_name = f"{self.name}_{new_id}"
+                    new_name = f"{base_name}_{new_id}"
 
         # ... otherwise, just register the agent
         else:
@@ -561,7 +565,7 @@ class TinyPerson(JsonSerializableRegistry):
             self._persona["relationships"] = relationships
 
         elif replace == False:
-            current_relationships = self._persona["relationships"]
+            current_relationships = self._persona.setdefault("relationships", [])
             if isinstance(relationships, list):
                 for r in relationships:
                     current_relationships.append(r)
@@ -738,7 +742,7 @@ class TinyPerson(JsonSerializableRegistry):
                 self._update_cognitive_state(
                     goals=cognitive_state.get("goals", None),
                     context=cognitive_state.get("context", None),
-                    attention=cognitive_state.get("emotions", None),
+                    attention=cognitive_state.get("attention", None),
                     emotions=cognitive_state.get("emotions", None),
                 )
 
@@ -765,15 +769,22 @@ class TinyPerson(JsonSerializableRegistry):
                     max_content_length=max_content_length,
                 )
 
-            # Side-effects via mental faculties
+            # Side-effects via mental faculties. A failing faculty or tool (e.g., malformed tool input written by
+            # the model) must not abort the turn, or the whole simulation: log it and let the agent know it failed.
             for faculty in self._mental_faculties:
-                faculty.process_action(self, action)
+                try:
+                    faculty.process_action(self, action)
+                except Exception as e:
+                    logger.error(f"[{self.name}] {type(faculty).__name__} failed to process {action.get('type')} action: {e}")
+                    self.think(f"I tried to perform a {action.get('type')} action, but it failed with this error: {e}")
 
             # count
             self.actions_count += 1
 
+            return action
+
         @repeat_on_error(retries=5, exceptions=[KeyError, TypeError])
-        def aux_act_once_sequence():
+        def aux_generate_actions():
             # ensure we have the latest prompt
             self.reset_prompt()
 
@@ -794,7 +805,8 @@ class TinyPerson(JsonSerializableRegistry):
             def _stimuli_payloads_for_current_turn():
                 """Return a chronologically ordered list of stimulus payloads.
 
-                The list always ends with the latest stimulus (of any type).
+                The list ends with the latest stimulus (of any type), unless
+                no stimulus arrived since actions were last generated.
                 Before it, up to ``MAX_IMAGE_STIMULI_TO_RECALL`` recent
                 image-bearing stimuli are included (unless the latest is
                 already one of them — no duplicates).
@@ -818,6 +830,13 @@ class TinyPerson(JsonSerializableRegistry):
 
                 if latest_payload is None:
                     return []
+
+                # Nothing new since the last generation: the latest stimulus was already acted upon, and re-sending
+                # it as the newest message would make the agent respond to it again on every TinyWorld step (it stays
+                # in the system prompt's episodic memory). Counted rather than checked via "an action follows it in
+                # memory", since faculty stimuli (e.g., RECALL results) land mid-sequence, before actions that never saw them.
+                if self.stimuli_count == self._stimuli_count_at_last_act:
+                    latest_payload, latest_idx = None, None
 
                 # --- collect image-bearing stimuli (chronological order) ---
                 max_recall = TinyPerson.MAX_IMAGE_STIMULI_TO_RECALL
@@ -846,7 +865,8 @@ class TinyPerson(JsonSerializableRegistry):
                         payloads.append(payload)
                         seen_indices.add(idx)
                 # Latest always comes last
-                payloads.append(latest_payload)
+                if latest_payload is not None:
+                    payloads.append(latest_payload)
                 return payloads
 
             for payload in _stimuli_payloads_for_current_turn():
@@ -874,14 +894,24 @@ class TinyPerson(JsonSerializableRegistry):
                 if actions[-1] is not None and isinstance(actions[-1], dict) and actions[-1].get("type") != "DONE":
                     actions[-1] = {"type": "DONE", "content": "", "target": ""}
 
+            return actions, role, content
+
+        # Only generation is retried. Committing has side effects (memory, actions buffer, faculties), so
+        # retrying after a partial commit would deliver the already committed actions twice.
+        def aux_act_once_sequence():
+            stimuli_count_presented = self.stimuli_count
+            actions, role, content = aux_generate_actions()
+            self._stimuli_count_at_last_act = stimuli_count_presented
+
             # Commit each action in order
             for action in actions:
                 # Skip None or non-dict actions
                 if action is None or not isinstance(action, dict):
                     logger.warning(f"[{self.name}] Skipping invalid action: {action}")
                     continue
-                _commit_action(action, role, content)
-                if action.get("type") == "DONE":
+                # the committed action may differ (e.g., replaced by DONE due to repetition)
+                committed_action = _commit_action(action, role, content)
+                if committed_action.get("type") == "DONE":
                     break
 
         # Option 1: run N actions (may span multiple turns if model emits only one)
@@ -1371,6 +1401,10 @@ class TinyPerson(JsonSerializableRegistry):
         """
         if agent in self._accessible_agents:
             self._accessible_agents.remove(agent)
+            # keep the mental state (which goes into the prompt) consistent
+            self._mental_state["accessible_agents"] = [
+                a for a in self._mental_state["accessible_agents"] if a.get("name") != agent.name
+            ]
         else:
             logger.warning(
                 f"[{self.name}] Agent {agent.name} is already inaccessible to {self.name}."
@@ -1495,12 +1529,18 @@ class TinyPerson(JsonSerializableRegistry):
                     item_types=["action", "stimulus"],
                 )
                 logger.debug(f"[{self.name}] Current episode: {episode}")
-                consolidated_memories = episodic_consolidator.process(
+                consolidation_result = episodic_consolidator.process(
                     episode,
                     timestamp=self._mental_state["datetime"],
                     context=self._mental_state,
                     persona=self.minibio(),
-                ).get("consolidation", None)
+                )
+                # a failed LLM call yields None (or a non-dict); crashing here would skip the episode commit
+                # below and make every later store retry the consolidation
+                consolidated_memories = (
+                    consolidation_result.get("consolidation", None)
+                    if isinstance(consolidation_result, dict) else None
+                )
                 if consolidated_memories is not None:
                     logger.info(
                         f"[{self.name}] Consolidating current {len(episode)} episodic events as consolidated semantic memories."
@@ -1826,7 +1866,7 @@ class TinyPerson(JsonSerializableRegistry):
 
         # If interested only in the last action, return the latest one
         if only_last_action:
-            return actions[-1].get("content", "")
+            return actions[-1].get("content", "") if actions else ""
 
         # Otherwise, return all contents from the filtered actions
         return "\n".join([action.get("content", "") for action in actions])
@@ -2300,7 +2340,7 @@ class TinyPerson(JsonSerializableRegistry):
         self.semantic_memory = SemanticMemory.from_json(state["semantic_memory"])
 
         for i, faculty in enumerate(self._mental_faculties):
-            faculty = faculty.from_json(state["_mental_faculties"][i])
+            self._mental_faculties[i] = faculty.from_json(state["_mental_faculties"][i])
 
         # delete fields already present in the state
         del state["_accessible_agents"]
@@ -2321,7 +2361,7 @@ class TinyPerson(JsonSerializableRegistry):
             new_name (str): The name of the new agent. Agent names must be unique in the simulation,
               this is why we need to provide a new name.
         """
-        new_agent = TinyPerson(name=new_name, spec_path=None)
+        new_agent = TinyPerson(name=new_name)
 
         new_persona = copy.deepcopy(self._persona)
         new_persona["name"] = new_name

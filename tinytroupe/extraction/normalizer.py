@@ -196,7 +196,9 @@ class Normalizer:
             if element not in self.normalizing_map:
                 elements_to_normalize.append(element)
 
+        uncached_results = {}  # fallback results: returned, but never cached
         if elements_to_normalize:
+            cacheable = True
             # Convert the mapping to a list of categories for the applier template
             categories_list = list(self.normalized_elements.keys())
             rendering_configs = {
@@ -222,6 +224,7 @@ class Normalizer:
             next_message = client().send_message(messages)
             if next_message is None or "content" not in next_message:
                 logger.error("LLM returned None or invalid response for normalization applier")
+                cacheable = False
                 # Fallback: map elements to first available category
                 normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
             else:
@@ -235,9 +238,11 @@ class Normalizer:
             # Robust validation with fallbacks
             if not isinstance(normalized_elements_from_llm, list):
                 logger.warning(f"Expected list from LLM, got {type(normalized_elements_from_llm)}. Using fallback.")
+                cacheable = False
                 normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
             elif len(normalized_elements_from_llm) != len(elements_to_normalize):
                 logger.warning(f"LLM returned {len(normalized_elements_from_llm)} elements, expected {len(elements_to_normalize)}. Padding/truncating.")
+                cacheable = False  # positions may be shifted, so don't trust any of them later
                 # Pad or truncate to match expected length
                 if len(normalized_elements_from_llm) < len(elements_to_normalize):
                     # Pad with first category
@@ -249,10 +254,13 @@ class Normalizer:
 
             for i, element in enumerate(elements_to_normalize):
                 normalized_element = normalized_elements_from_llm[i]
-                self.normalizing_map[element] = normalized_element
+                if cacheable:
+                    self.normalizing_map[element] = normalized_element
+                else:
+                    uncached_results[element] = normalized_element
 
         for element in denormalized_elements:
-            normalized_elements.append(self.normalizing_map[element])
+            normalized_elements.append(self.normalizing_map[element] if element in self.normalizing_map else uncached_results[element])
 
         # Return appropriate type based on input
         if isinstance(element_or_elements, str):

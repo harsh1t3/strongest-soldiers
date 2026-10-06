@@ -43,10 +43,11 @@ class TinySocialNetwork(TinyWorld):
         logger.debug(f"Adding relation {name} between {agent_1.name} and {agent_2.name}.")
 
         # agents must already be in the environment, if not they are first added
+        # (through add_agent, so that name lookup and the agent's environment are set too)
         if agent_1 not in self.agents:
-            self.agents.append(agent_1)
+            self.add_agent(agent_1)
         if agent_2 not in self.agents:
-            self.agents.append(agent_2)
+            self.add_agent(agent_2)
 
         if name in self.relations:
             self.relations[name].append((agent_1, agent_2))
@@ -73,11 +74,13 @@ class TinySocialNetwork(TinyWorld):
                 agent_2.make_agent_accessible(agent_1)
 
     @transactional()
-    def _step(self):
+    def _step(self, timedelta_per_step=None, randomize_agents_order=True, parallelize=True):
         self._update_agents_contexts()
 
         #call super
-        super()._step()
+        return super()._step(timedelta_per_step=timedelta_per_step,
+                             randomize_agents_order=randomize_agents_order,
+                             parallelize=parallelize)
     
     @transactional()
     def _handle_reach_out(self, source_agent: TinyPerson, content: str, target: str):
@@ -94,6 +97,7 @@ class TinySocialNetwork(TinyWorld):
         # check if the target is in the same relation as the source
         if self.is_in_relation_with(source_agent, self.get_agent_by_name(target)):
             super()._handle_reach_out(source_agent, content, target)
+            return
             
         # if we get here, the target is not in the same relation as the source
         source_agent.socialize(f"{target} is not in the same relation as you, so you cannot reach out to them.", source=self)

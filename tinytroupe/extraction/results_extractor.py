@@ -85,8 +85,8 @@ class ResultsExtractor:
     def extract_results_from_agent(
         self,
         tinyperson: TinyPerson,
-        extraction_objective: str = "The main points present in the agent's interactions history.",
-        situation: str = "",
+        extraction_objective: str = None,
+        situation: str = None,
         fields: list = None,
         fields_hints: dict = None,
         verbose: bool = None,
@@ -178,8 +178,8 @@ performed.
     def extract_results_from_world(
         self,
         tinyworld: TinyWorld,
-        extraction_objective: str = "The main points that can be derived from the agents conversations and actions.",
-        situation: str = "",
+        extraction_objective: str = None,
+        situation: str = None,
         fields: list = None,
         fields_hints: dict = None,
         verbose: bool = None,

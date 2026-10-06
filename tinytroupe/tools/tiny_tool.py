@@ -1,6 +1,5 @@
 from tinytroupe.tools import logger
 from tinytroupe.utils import JsonSerializableRegistry
-from tinytroupe.utils import repeat_on_error
 
 
 class TinyTool(JsonSerializableRegistry):
@@ -53,17 +52,11 @@ class TinyTool(JsonSerializableRegistry):
         """
         Processes an action by delegating to the subclass implementation.
 
-        If ``_process_action`` raises an exception, the tool-level retry
-        mechanism re-invokes it (up to 3 times) after invalidating the
-        last API cache entry.  This keeps retries granular — only the
-        tool execution is repeated, avoiding side-effects that a full
-        turn-level retry would cause.
+        Not retried: the action content is fixed, so parsing/validation failures are deterministic, while
+        anything after that (enrichment LLM calls, exports, state changes) is a side effect that a blind
+        retry would repeat. Retries of LLM-dependent steps belong around those steps in the subclass.
         """
         self._protect_real_world()
         self._enforce_ownership(agent)
 
-        @repeat_on_error(retries=3, exceptions=[Exception])
-        def _try_process():
-            return self._process_action(agent, action)
-
-        return _try_process()
+        return self._process_action(agent, action)

@@ -1,6 +1,6 @@
-# Runs the TinyTroupe core test suite on every push/PR to main.
+# Runs the TinyTroupe core test suite (real LLM calls) on demand.
 # Core tests validate critical functionality and typically complete in ~1 hour.
-# Slow tests are excluded for faster CI feedback.
+# Slow tests are excluded for faster CI feedback. Every push/PR runs the offline tests instead (offline-tests.yml).
 #
 # Required secret:
 #   OPENAI_API_KEY — an OpenAI API key with access to the models configured
@@ -9,11 +9,10 @@
 name: Core Tests
 
 on:
-  push:
-    branches: [ "main", "development" ]
-  pull_request:
-    branches: [ "main", "development" ]
-  workflow_dispatch:          # allow manual triggering
+  workflow_dispatch:          # needs the OPENAI_API_KEY secret, so it runs only when triggered manually
+
+permissions:
+  contents: read
 
 jobs:
   core-tests:
@@ -33,7 +32,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y pandoc
 
       - name: Install dependencies
-        run: pip install -e .
+        run: pip install -e ".[dev]"
+
+      - name: Use OpenAI for the LLM tests
+        # the repository defaults to API_TYPE=claude_code, which needs a logged-in Claude Code CLI that runners
+        # don't have; these tests run against OpenAI (and its response cache) instead
+        run: sed -i -e 's/^API_TYPE=.*/API_TYPE=openai/' -e 's/^MODEL=.*/MODEL=gpt-5-mini/' -e 's/^REASONING_MODEL=.*/REASONING_MODEL=o3-mini/' config.ini
 
       - name: Restore API cache
         uses: actions/cache/restore@v4
@@ -46,7 +50,7 @@ jobs:
       - name: Run core tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: pytest -s --use_cache -m "core and not slow"
+        run: pytest -s --use_cache -m "core and not slow" --cov=tinytroupe --cov-report=html --cov-report=xml --junit-xml=test-results.xml --html=test-report.html --self-contained-html
 
       - name: Save API cache
         if: always()

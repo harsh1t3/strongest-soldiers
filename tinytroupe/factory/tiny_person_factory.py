@@ -237,6 +237,7 @@ class TinyPersonFactory(TinyFactory):
             f"Starting the person generation based these particularities: {agent_particularities}"
         )
         fresh_agent_name = None
+        sampled_characteristics = None
 
         # are we going to use a pre-computed sample of characteristics too?
         if self.population_size is not None:
@@ -391,20 +392,28 @@ class TinyPersonFactory(TinyFactory):
                 logger.error(f"Error while generating agent specification: {e}")
 
         # create the fresh agent
+        person = None
         if agent_spec is not None:
             # the agent is created here. This is why the present method cannot be cached. Instead, an auxiliary method is used
             # for the actual model call, so that it gets cached properly without skipping the agent creation.
 
             # protect parallel agent generation
             with concurrent_agent_generataion_lock:
-                person = TinyPerson(agent_spec["name"])
-                self._setup_agent(person, agent_spec)
-                if post_processing_func is not None:
-                    post_processing_func(person)
+                try:
+                    person = TinyPerson(agent_spec["name"])
+                except ValueError as e:
+                    # the name check above runs outside the lock, so a parallel generation may have taken the name meanwhile
+                    logger.error(f"Could not create agent: {e}")
 
-                self.generated_minibios.append(person.minibio())
-                self.generated_names.append(person.get("name"))
+                if person is not None:
+                    self._setup_agent(person, agent_spec)
+                    if post_processing_func is not None:
+                        post_processing_func(person)
 
+                    self.generated_minibios.append(person.minibio())
+                    self.generated_names.append(person.get("name"))
+
+        if person is not None:
             return person
         else:
             logger.error(f"Could not generate an agent after {attempts} attempts.")
@@ -541,7 +550,12 @@ class TinyPersonFactory(TinyFactory):
 
             # we iterate over the futures as they are completed, and collect the results
             for future in concurrent.futures.as_completed(futures):
-                i, person = future.result()
+                try:
+                    i, person = future.result()
+                except Exception as e:
+                    # one failed generation must not discard the people already generated
+                    logger.error(f"Error while generating a person: {e}. Continuing with the remaining ones.")
+                    continue
                 if person is not None:
                     people.append(person)
                     info_msg = (
@@ -582,10 +596,10 @@ class TinyPersonFactory(TinyFactory):
             )
             if person is not None:
                 people.append(person)
-            info_msg = f"Generated person {i+1}/{number_of_people}: {person.minibio()}"
-            logger.info(info_msg)
-            if verbose:
-                print(info_msg)
+                info_msg = f"Generated person {i+1}/{number_of_people}: {person.minibio()}"
+                logger.info(info_msg)
+                if verbose:
+                    print(info_msg)
             else:
                 logger.error(f"Could not generate person {i+1}/{number_of_people}.")
 
@@ -637,10 +651,13 @@ class TinyPersonFactory(TinyFactory):
         
         Returns a dictionary with the computed sampling_dimensions, sampling_plan, and remaining_characteristics_sample.
         """
+        # a context-only factory samples from its context, instead of from the literal "None"
+        description = description or context
+
         # sampling dimensions
         sampling_dimensions = utils.try_function(
             lambda: self._compute_sampling_dimensions(
-                sampling_space_description=description
+                sampling_space_description=description, context=context
             ),
             # check that the result is a dict
             postcond_func=lambda result: isinstance(result, dict),
@@ -657,10 +674,12 @@ class TinyPersonFactory(TinyFactory):
                 N=n,
                 sampling_dimensions=sampling_dimensions,
                 enforce_usage_of_all_dimensions=self.enforce_usage_of_all_dimensions,
+                context=context,
             ),
-            # checks that the plan is a list, not an empty dictionary, a number or a string
-            postcond_func=lambda result: isinstance(result["sample_plan"], list)
-            and len(result) > 0,
+            # checks that the plan is a non-empty list, not an empty dictionary, a number or a string
+            postcond_func=lambda result: isinstance(result, dict)
+            and isinstance(result.get("sample_plan"), list)
+            and len(result["sample_plan"]) > 0,
             retries=15,
         )
         sampling_plan = sampling_plan_result[
@@ -783,7 +802,9 @@ class TinyPersonFactory(TinyFactory):
         enable_justification_step=False,
         enable_reasoning_step=False,
     )
-    def _compute_sampling_dimensions(self, sampling_space_description: str) -> dict:
+    def _compute_sampling_dimensions(
+        self, sampling_space_description: str, context: str = None
+    ) -> dict:
         """
         Given a sampling description, computes the dimensions of the sampling space (and output them formated as a valid JSON specification). The sampling space offers a way to sample from a population of people,
         so each dimension contains values that could be an attribute of a **specific** person. The resulting sampling space must:
@@ -989,6 +1010,7 @@ class TinyPersonFactory(TinyFactory):
 
         Args:
             sampling_space_description (str): A description of the sampling space.
+            context (str, optional): An optional context; if specified, the dimensions and their values must be consistent with it.
 
         Returns:
             dict: A dictionary with the dimensions of the sampling space, as shown in the example above.

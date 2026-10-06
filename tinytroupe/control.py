@@ -343,17 +343,17 @@ class Simulation:
         """
         logger.debug(f"Now saving cache file to {cache_path}.")
         try:
-            # Create a temporary file
-            with tempfile.NamedTemporaryFile('w', delete=False) as temp:
+            # Create a temporary file next to the target: os.replace fails across drives/filesystems
+            with tempfile.NamedTemporaryFile('w', delete=False, encoding="utf-8",
+                                             dir=os.path.dirname(os.path.abspath(cache_path))) as temp:
                 json.dump(self.cached_trace, temp, indent=4)
 
             # Replace the original file with the temporary file
             os.replace(temp.name, cache_path)
+            self.has_unsaved_cache_changes = False
         except Exception as e:
             traceback_string = ''.join(traceback.format_tb(e.__traceback__))
             logger.error(f"An error occurred while saving the cache file: {e}\nTraceback:\n{traceback_string}")
-
-        self.has_unsaved_cache_changes = False
 
     
 
@@ -377,14 +377,21 @@ class Simulation:
         Ends a transaction.
         """
         with concurrent_execution_lock:
-            self._under_transaction[id] = False
-    
+            # drop the id: worker thread ids would otherwise pile up in the any() scan of is_under_transaction
+            self._under_transaction.pop(id, None)
+
     def is_under_transaction(self, id=None):
         """
         Checks if the agent is under a transaction.
         """
         with concurrent_execution_lock:
-            return self._under_transaction.get(id, False)
+            # Outside parallel segments, work spawned in worker threads (e.g., agents acting in parallel
+            # within a world step) belongs to the transaction already open in the spawning thread.
+            # ponytail: any open transaction counts as the parent, which assumes one thread drives the simulation;
+            # propagate the parent transaction to worker threads explicitly if several user threads must share one.
+            return self._under_transaction.get(id, False) or (
+                not self._under_parallel_transactions and any(self._under_transaction.values())
+            )
 
     def _clear_communications_buffers(self):
         """
@@ -603,13 +610,15 @@ class Transaction:
                     if not begin_parallel:
                         self.simulation.begin_transaction(id=parallel_id)
 
-                    # Compute the function and encode the relevant output and simulation state
-                    output = self.function(*self.args, **self.kwargs)
-                    self._save_output_with_simulation_state(event_hash, output)
-
-                    # END TRANSACTION #################################################################
-                    if not begin_parallel:
-                        self.simulation.end_transaction(id=parallel_id)
+                    try:
+                        # Compute the function and encode the relevant output and simulation state
+                        output = self.function(*self.args, **self.kwargs)
+                        self._save_output_with_simulation_state(event_hash, output)
+                    finally:
+                        # END TRANSACTION #################################################################
+                        # (also on errors, otherwise every later transaction would be seen as nested and not cached)
+                        if not begin_parallel:
+                            self.simulation.end_transaction(id=parallel_id)
                     
                 else: # already under transaction (thus, now a reentrant transaction) OR beginning a parallel segment
 
@@ -622,7 +631,12 @@ class Transaction:
                     #     it is not part of the parallel segment, but rather the beginning of it. This event will be
                     #     reconstructed during runtime from the parallel events within the segment.
 
-                    output = self.function(*self.args, **self.kwargs)
+                    try:
+                        output = self.function(*self.args, **self.kwargs)
+                    except Exception:
+                        if begin_parallel:
+                            self.simulation.end_parallel_transactions()
+                        raise
 
             if begin_parallel:
                 self.simulation.end_parallel_transactions()
@@ -786,8 +800,8 @@ def reset():
 
 def _simulation(id="default"):
     global _current_simulations
-    if _current_simulations[id] is None:
-        _current_simulations[id] = Simulation()
+    if _current_simulations.get(id) is None:
+        _current_simulations[id] = Simulation(id=id)
     
     return _current_simulations[id]
 

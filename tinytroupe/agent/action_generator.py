@@ -258,7 +258,7 @@ class ActionGenerator(JsonSerializableRegistry):
             # CORRECT OR REPHRASE the action directly
             if self.enable_direct_correction:
                 for attempt in range(self.max_attempts):
-                    # Only meaningful for single action, so pick the last action for correction
+                    # in multi-action mode this is the whole sequence (minus DONE), each action being corrected
                     last_action = remove_done_actions(
                         tentative
                     )  # TODO remove pick_reference_action_for_scoring(tentative)
@@ -765,7 +765,10 @@ class ActionGenerator(JsonSerializableRegistry):
     # Action correction methods
     ################################################################################################
 
-    def _correct_action(self, action: dict, feedback, llm_role, llm_content):
+    def _correct_action(self, action, feedback, llm_role, llm_content):
+        """
+        Directly rephrases the action (a dict, or a list of them in multi-action mode) according to the feedback.
+        """
         situation = f"""
             The following action by an agent was observed:
                 
@@ -781,18 +784,23 @@ class ActionGenerator(JsonSerializableRegistry):
         #        """)
         # rule = utils.formulate_corrective_rule(restructured_situation)
         rules = utils.extract_observed_vs_expected_rules(situation)
-        rephrased_action_content = utils.correct_according_to_rule(
-            action["content"], rules
-        )
 
-        # copy action
-        rephrased_action = action.copy()
+        def rephrase(single_action):
+            rephrased = single_action.copy()
+            if single_action.get("content"):
+                rephrased["content"] = utils.correct_according_to_rule(
+                    single_action["content"], rules
+                )
+            return rephrased
 
-        # update content
-        rephrased_action["content"] = rephrased_action_content
-
-        # replace in the 'action' key in the original llm content message
-        llm_content["action"] = rephrased_action
+        if isinstance(action, list):
+            # the feedback concerns the whole sequence, so the rules extracted from it are applied to each action
+            rephrased_action = [rephrase(a) for a in action]
+            llm_content["actions"] = rephrased_action
+        else:
+            rephrased_action = rephrase(action)
+            # replace in the 'action' key in the original llm content message
+            llm_content["action"] = rephrased_action
 
         return rephrased_action, llm_role, llm_content
 

@@ -889,8 +889,11 @@ class LLMChat:
         # using a regular expression
         import re
 
+        # options are literal text (e.g. "C++", "N/A (x)"): escape them, try longer ones first (so "C"
+        # doesn't win over "C++"), and use lookarounds instead of \b, which fails next to non-word characters
+        alternatives = sorted(map(re.escape, options), key=len, reverse=True)
         match = re.search(
-            r"\b(?:" + "|".join(options) + r")\b", llm_output, re.IGNORECASE
+            r"(?<!\w)(?:" + "|".join(alternatives) + r")(?!\w)", llm_output, re.IGNORECASE
         )
         if match:
             # Return the canonical option (from the options list) instead of the matched text
@@ -956,7 +959,7 @@ class LLMChat:
     def _request_list_of_dict_llm_message(self):
         return {
             "role": "user",
-            "content": "The `value` field you generate **must** be a list of dictionaries, specified as a JSON structure embedded in a string. For example, `[\{...\}, \{...\}, ...]`. This is critical for later processing.",
+            "content": "The `value` field you generate **must** be a list of dictionaries, specified as a JSON structure embedded in a string. For example, `[{...}, {...}, ...]`. This is critical for later processing.",
         }
 
     def _coerce_to_list(self, llm_output: str):
@@ -1054,22 +1057,15 @@ def llm(
                 user_prompt = "EXECUTE THE INSTRUCTIONS BELOW:\n\n " + result
 
             else:
-                # if there's a parameter named "self" in the function signature, remove it from args
-                if "self" in sig.parameters:
-                    args = args[1:]
-
-                # TODO obsolete?
-                #
-                # if we are relying on parameters, they must be named
-                # if len(args) > 0:
-                #    raise ValueError("Positional arguments are not allowed in LLM-based functions whose body does not return a string.")
+                # name every argument (positional ones too, plus defaults), so the LLM knows what each value is
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                parameters = {name: value for name, value in bound_args.arguments.items() if name != "self"}
 
                 user_prompt = f"Execute the above computation as best as you can using the following input parameter values and respecting the output format defined by the computation specification. Produce the requested output even if it is very long.\n"
+                # default=str: arguments that aren't JSON-serializable (datetimes, objects) are rendered as text
                 user_prompt += (
-                    f" ## Unnamed parameters\n{json.dumps(args, indent=4)}\n\n"
-                )
-                user_prompt += (
-                    f" ## Named parameters\n{json.dumps(kwargs, indent=4)}\n\n"
+                    f" ## Input parameters\n{json.dumps(parameters, indent=4, default=str)}\n\n"
                 )
 
                 user_prompt += (
@@ -1143,8 +1139,8 @@ def extract_json(text: str) -> dict:
         # remove invalid escape sequences, which show up sometimes
         # Handle common problematic escape sequences more comprehensively
         filtered_text = re.sub(
-            r"\\([^\"\\\/bfnrt])", r"\1", filtered_text
-        )  # remove invalid escapes but keep valid JSON escapes
+            r"\\(?!u[0-9a-fA-F]{4})([^\"\\\/bfnrt])", r"\1", filtered_text
+        )  # remove invalid escapes but keep valid JSON escapes (incl. \uXXXX, but not e.g. C:\users)
         filtered_text = re.sub(r"\\'", "'", filtered_text)  # replace \' with just '
         filtered_text = re.sub(r"\\,", ",", filtered_text)  # replace \, with just ,
 
