@@ -11,13 +11,11 @@
 #
 name: "CodeQL Advanced"
 
+# CodeQL uploads its results to GitHub code scanning, which private repositories only have with GitHub
+# Code Security. Until that is enabled (or the repository is public), run it manually; the Bandit workflow
+# is the security check on every push/PR.
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  schedule:
-    - cron: '35 8 * * 1'
+  workflow_dispatch:
 
 jobs:
   analyze:
