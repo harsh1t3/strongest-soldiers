@@ -68,9 +68,13 @@ def test_check_assumptions_finds_metric():
 
 def test_validator_converts_effect_sizes_to_a_common_scale():
     v = SimulationExperimentEmpiricalValidator()
-    # Mann-Whitney CLES: 0.5 means no effect, 0 or 1 mean maximal effect
+    # Mann-Whitney CLES: 0.5 means no effect, 0 or 1 mean maximal effect. Converted to Cohen's d, which is
+    # unbounded, so complete separation must come out far beyond the 0.8 that counts as a large effect.
     assert v._extract_effect_size({"test_type": "Mann-Whitney U test", "effect_size": 0.5}) == 0
-    assert abs(v._extract_effect_size({"test_type": "Mann-Whitney U test", "effect_size": 0.0})) == 1
+    assert v._extract_effect_size({"test_type": "Mann-Whitney U test", "effect_size": 0.0}) < -2
+    assert v._extract_effect_size({"test_type": "Mann-Whitney U test", "effect_size": 1.0}) > 2
+    # a CLES of 0.76 is the textbook equivalent of d = 1.0
+    assert v._extract_effect_size({"test_type": "Mann-Whitney U test", "effect_size": 0.76}) == pytest.approx(1.0, abs=0.05)
     assert v._extract_effect_size({"test_type": "Welch t-test (unequal variance)", "effect_size": float("nan")}) is None
     assert v._extract_effect_size({"test_type": "Welch t-test (unequal variance)", "effect_size": 0.7}) == 0.7
 

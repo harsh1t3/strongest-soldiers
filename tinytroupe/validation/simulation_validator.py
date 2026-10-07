@@ -10,6 +10,7 @@ against known empirical benchmarks.
 from typing import Dict, List, Optional, Union, Any
 import json
 import math
+from statistics import NormalDist
 import csv
 from datetime import datetime
 from pathlib import Path
@@ -1994,12 +1995,13 @@ class SimulationExperimentEmpiricalValidator:
             return metric_result.get("effect_size", 0.0)
         
         elif "mann-whitney" in test_type:
-            # For Mann-Whitney, use Common Language Effect Size (CLES)
-            # Convert CLES to Cohen's d equivalent: d ≈ 2 * Φ^(-1)(CLES)
+            # For Mann-Whitney, the effect size is the Common Language Effect Size (the probability that a
+            # treatment value exceeds a control one). Convert it to Cohen's d: d = sqrt(2) * Phi^-1(CLES).
+            # Unlike a linear rescaling, this keeps the same scale as the t-tests' d, which is unbounded,
+            # so complete separation is not capped at a moderate-looking d of 1.
             cles = metric_result.get("effect_size", 0.5)
-            # Simple approximation: convert CLES to d-like measure
-            # CLES of 0.5 = no effect, CLES of 0.71 ≈ small effect (d=0.2)
-            return 2 * (cles - 0.5)
+            cles = min(max(cles, 0.001), 0.999)  # complete separation would otherwise map to infinity
+            return math.sqrt(2) * NormalDist().inv_cdf(cles)
         
         elif "anova" in test_type:
             # For ANOVA, use eta-squared and convert to Cohen's d equivalent
@@ -2010,10 +2012,9 @@ class SimulationExperimentEmpiricalValidator:
             return 0.0
         
         elif "chi-square" in test_type:
-            # For Chi-square, use Cramer's V and convert to Cohen's d equivalent
-            cramers_v = metric_result.get("effect_size", 0.0)
-            # Rough conversion: d ≈ 2 * Cramer's V
-            return 2 * cramers_v
+            # For Chi-square, use Cramer's V and convert to Cohen's d equivalent: d = 2V / sqrt(1 - V^2)
+            cramers_v = min(abs(metric_result.get("effect_size", 0.0)), 0.999)
+            return 2 * cramers_v / math.sqrt(1 - cramers_v ** 2)
         
         elif "kolmogorov-smirnov" in test_type or "ks" in test_type:
             # For KS test, the effect size is the KS statistic itself

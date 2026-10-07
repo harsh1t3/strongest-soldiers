@@ -319,6 +319,7 @@ The project is structured as follows:
   - `/tinytroupe`: contains the Python library itself. In particular:
     * Each submodule here might contain a `prompts/` folder with the prompts used to call the LLMs.
   - `/tests`: contains the unit tests for the library. A quick, cached run is `pytest --use_cache -m "core and not slow"` (see `tests/README.md`). Note that `test.bat` refreshes the cache, i.e., it re-runs every LLM call.
+  - `/benchmarks`: a deterministic, LLM-free comparison of this fork against upstream TinyTroupe (see `benchmarks/README.md`).
   - `/examples`: contains examples that show how to use the library, mainly using Jupyter notebooks (for greater readability), but also as pure Python scripts.
   - `/data`: any data used by the examples or the library.
   - `/docs`: documentation for the project.
