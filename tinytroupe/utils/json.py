@@ -1,5 +1,8 @@
-import json
+import contextlib
 import copy
+import json
+import os
+import tempfile
 from pydantic import BaseModel
 
 from tinytroupe.utils import logger
@@ -119,7 +122,7 @@ class JsonSerializableRegistry:
                 if key in custom_deserializers:
                     # Use custom initializer if provided
                     setattr(instance, key, custom_deserializers[key](value))
-                elif isinstance(value, dict) and value.get(serialization_type_field_name) in JsonSerializableRegistry.class_mapping:
+                elif _names_registered_class(value, serialization_type_field_name):
                     # It's another JsonSerializableRegistry object. Checking the tag names a registered class matters
                     # when the tag field is a common key such as "type" (e.g., memory items have "type": "action").
                     setattr(instance, key, JsonSerializableRegistry.from_json(value, serialization_type_field_name=serialization_type_field_name))
@@ -127,7 +130,7 @@ class JsonSerializableRegistry:
                     # Handle collections, recursively deserialize if items are JsonSerializableRegistry objects
                     deserialized_collection = []
                     for item in value:
-                        if isinstance(item, dict) and item.get(serialization_type_field_name) in JsonSerializableRegistry.class_mapping:
+                        if _names_registered_class(item, serialization_type_field_name):
                             deserialized_collection.append(JsonSerializableRegistry.from_json(item, serialization_type_field_name=serialization_type_field_name))
                         else:
                             deserialized_collection.append(copy.deepcopy(item))
@@ -215,6 +218,38 @@ def post_init(cls):
     cls.__init__ = new_init
     return cls
 
+def _names_registered_class(value, type_field_name: str) -> bool:
+    """
+    Whether a JSON value is a serialized JsonSerializableRegistry object, i.e. a dict whose type field names a
+    registered class. Checking the class matters when the type field is a common key such as "type"
+    (e.g., memory items have "type": "action"), and the tag may be any JSON value, including unhashable ones.
+    """
+    if not isinstance(value, dict):
+        return False
+    tag = value.get(type_field_name)
+    return isinstance(tag, str) and tag in JsonSerializableRegistry.class_mapping
+
+
+def atomic_write_json(path: str, data, indent=None, ensure_ascii=True) -> None:
+    """
+    Writes data as JSON to the given path, replacing any existing file atomically: readers see either the old
+    or the complete new file, never a truncated one (e.g., after a crash mid-write).
+    """
+    path = os.path.abspath(path)
+    # the temp file must be in the same directory (same filesystem/drive) for os.replace to be atomic
+    fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(path), prefix=os.path.basename(path) + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.remove(temp_path)
+        raise
+
+
 def merge_dicts(current, additions, overwrite=False, error_on_conflict=True, remove_duplicates=True):
     """
     Merges two dictionaries and returns a new dictionary. Works as follows:
@@ -283,16 +318,25 @@ def remove_duplicate_items(lst):
         Returns:
         - list: A new list with duplicates removed.
         """
-        seen = []
+        seen = set()
         result = []
         for item in lst:
-            if isinstance(item, dict):
-                # Canonical string form, since dict values may themselves be unhashable (e.g., lists)
-                item_key = json.dumps(item, sort_keys=True, default=str)
-            else:
-                item_key = item
-
+            item_key = _hashable_key(item)
             if item_key not in seen:
-                seen.append(item_key)
+                seen.add(item_key)
                 result.append(item)
         return result
+
+
+def _hashable_key(item):
+    """A hashable, canonical stand-in for a (possibly nested, unhashable) value, used to detect duplicates."""
+    if isinstance(item, dict):
+        # keys are compared by their string form, since dicts may mix key types (e.g., ints and strs)
+        return ("dict", tuple(sorted(((str(k), _hashable_key(v)) for k, v in item.items()), key=lambda kv: kv[0])))
+    if isinstance(item, (list, tuple)):
+        return ("list", tuple(_hashable_key(v) for v in item))
+    try:
+        hash(item)
+        return item
+    except TypeError:
+        return ("repr", repr(item))

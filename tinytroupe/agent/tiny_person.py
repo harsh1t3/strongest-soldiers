@@ -62,6 +62,8 @@ class TinyPerson(JsonSerializableRegistry):
         "semantic_memory",
         "_image_registry",
         "_image_id_counter",
+        "stimuli_count",
+        "_stimuli_count_at_last_act",
     ]
     serializable_attributes_renaming = {
         "_mental_faculties": "mental_faculties",
@@ -776,6 +778,12 @@ class TinyPerson(JsonSerializableRegistry):
                     faculty.process_action(self, action)
                 except Exception as e:
                     logger.error(f"[{self.name}] {type(faculty).__name__} failed to process {action.get('type')} action: {e}")
+                    # if the action came from a cached response, drop it so later runs regenerate instead of replaying it
+                    try:
+                        from tinytroupe.clients import client
+                        client().invalidate_last_cache_entry()
+                    except Exception:
+                        pass  # best-effort, the failure above is what matters
                     self.think(f"I tried to perform a {action.get('type')} action, but it failed with this error: {e}")
 
             # count
@@ -2226,6 +2234,10 @@ class TinyPerson(JsonSerializableRegistry):
     ):
         """
         Loads a JSON agent specification.
+
+        Only load specifications you trust: besides the persona, a specification can name mental faculties and
+        grounding connectors, which on load read the local folders and fetch the web pages they list into the
+        agent's memory.
 
         Args:
             path_or_dict (str or dict): The path to the JSON file or the dictionary itself.

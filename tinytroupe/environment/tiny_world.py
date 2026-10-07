@@ -1,4 +1,5 @@
 import concurrent.futures
+import contextvars
 import copy
 import random
 import textwrap
@@ -177,8 +178,9 @@ class TinyWorld:
 
         logger.debug(f"[{self.name}] All agents will START acting in parallel.")
         with concurrent.futures.ThreadPoolExecutor() as executor:
+            # copy_context: the workers' transactional calls then nest in this step's transaction
             futures = {
-                executor.submit(agent.act, return_actions=True): agent
+                executor.submit(contextvars.copy_context().run, agent.act, return_actions=True): agent
                 for agent in self.agents
             }
             agents_actions = {}

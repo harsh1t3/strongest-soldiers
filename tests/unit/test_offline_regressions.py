@@ -134,3 +134,46 @@ def test_worlds_do_not_share_interventions():
     w2 = TinyWorld("regression world 2")
     w1._interventions.append("an intervention")
     assert w2._interventions == []
+
+
+def test_merge_dicts_dedupes_dicts_with_mixed_key_types():
+    merged = merge_dicts({"x": [{1: "a", "b": [1]}]}, {"x": [{1: "a", "b": [1]}, {2: "c"}]})
+    assert merged["x"] == [{1: "a", "b": [1]}, {2: "c"}]
+
+
+def test_from_json_ignores_unhashable_type_tags():
+    class _Bag(JsonSerializableRegistry):
+        serializable_attributes = ["items", "meta"]
+
+    bag = _Bag.from_json({"type": "_Bag", "items": [{"type": ["a", "b"]}], "meta": {"type": {"k": 1}}},
+                         serialization_type_field_name="type")
+    assert bag.items == [{"type": ["a", "b"]}] and bag.meta == {"type": {"k": 1}}
+
+
+def test_parallel_agent_actions_nest_in_the_step_transaction(tmp_path):
+    """
+    With agents acting in parallel threads, their act() calls must belong to the world step's transaction:
+    the cache then holds one entry per world step instead of one per agent in thread-finishing order,
+    which would never replay.
+    """
+    import tinytroupe.control as control
+    from tinytroupe.agent import TinyPerson
+
+    control.reset()
+    agents = [TinyPerson(f"Parallel agent {i}") for i in range(3)]
+    for agent in agents:
+        # no LLM: acting just emits DONE
+        agent.action_generator = type("G", (), {"generate_next_actions": staticmethod(
+            lambda agent, messages: ([{"type": "DONE", "content": "", "target": ""}], "assistant", {}, []))})()
+    world = TinyWorld("Parallel transaction world", agents)
+
+    control.begin(str(tmp_path / "trace.cache.json"))
+    try:
+        world.run(2, parallelize=True)
+        trace = control.current_simulation().execution_trace
+    finally:
+        control.end()
+        control.reset()
+
+    # run() is the single top-level transaction (its steps and the agents' act() calls nest in it)
+    assert len(trace) == 1 and "'run'" in str(trace[0][1])

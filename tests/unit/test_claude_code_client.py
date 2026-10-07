@@ -50,6 +50,7 @@ def test_raw_call_wraps_cli_result_as_chat_completion(monkeypatch):
     monkeypatch.setattr(claude_code_client, "_claude_command", lambda: ("claude",))
     monkeypatch.setattr(claude_code_client.subprocess, "run", fake_run)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-should-not-be-used")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "token-should-not-be-used")
 
     response = ClaudeCodeClient()._raw_model_call(
         "haiku", {"messages": [{"role": "user", "content": "Pick a number"}], "response_format": _Answer, "timeout": 5})
@@ -59,7 +60,7 @@ def test_raw_call_wraps_cli_result_as_chat_completion(monkeypatch):
     assert seen["command"][seen["command"].index("--model") + 1] == "haiku"
     assert json.loads(seen["command"][seen["command"].index("--json-schema") + 1])["required"] == ["value"]
     assert seen["input"]["message"]["content"] == [{"type": "text", "text": "Pick a number"}]
-    assert "ANTHROPIC_API_KEY" not in seen["env"]
+    assert "ANTHROPIC_API_KEY" not in seen["env"] and "ANTHROPIC_AUTH_TOKEN" not in seen["env"]
 
 
 def _completed(result=None, stderr="", returncode=0):
@@ -69,13 +70,26 @@ def _completed(result=None, stderr="", returncode=0):
 
 def test_unfixable_cli_failures_are_not_retried():
     with pytest.raises(InvalidRequestError):
-        claude_code_client._raise_for_cli_failure(_completed({"is_error": True, "result": "Not logged in · Please run /login"}))
+        claude_code_client._parse_cli_result(_completed({"is_error": True, "result": "Not logged in · Please run /login"}))
     with pytest.raises(InvalidRequestError):
-        claude_code_client._raise_for_cli_failure(_completed(stderr="error: unknown option '--json-schema'", returncode=1))
+        claude_code_client._parse_cli_result(_completed(stderr="error: unknown option '--json-schema'", returncode=1))
     # transient failures are retried by the caller
     with pytest.raises(RuntimeError):
-        claude_code_client._raise_for_cli_failure(_completed({"is_error": True, "result": "Overloaded", "api_error_status": 529}))
-    claude_code_client._raise_for_cli_failure(_completed({"is_error": False, "result": "ok"}))
+        claude_code_client._parse_cli_result(_completed({"is_error": True, "result": "Overloaded", "api_error_status": 529}))
+    with pytest.raises(RuntimeError):  # a non-zero exit is a failure even when the result event claims otherwise
+        claude_code_client._parse_cli_result(_completed({"is_error": False, "result": None, "subtype": "error_max_turns"}, returncode=1))
+    assert claude_code_client._parse_cli_result(_completed({"is_error": False, "result": "ok"}))["result"] == "ok"
+
+
+def test_null_text_parts_and_null_results_are_handled(monkeypatch):
+    system, blocks = _to_cli_input([{"role": "user", "content": [{"type": "text", "text": None}, {"type": "text", "text": "Hi"}]}])
+    assert blocks == [{"type": "text", "text": "Hi"}]
+
+    monkeypatch.setattr(claude_code_client, "_claude_command", lambda: ("claude",))
+    monkeypatch.setattr(claude_code_client.subprocess, "run",
+                        lambda *a, **k: _completed({"is_error": False, "result": None, "subtype": "interrupted"}))
+    with pytest.raises(RuntimeError):  # retried by send_message rather than handing None content to callers
+        ClaudeCodeClient()._raw_model_call("haiku", {"messages": [{"role": "user", "content": "x"}], "timeout": 5})
 
 
 def test_npm_cmd_shim_is_bypassed(monkeypatch, tmp_path):

@@ -16,12 +16,16 @@ from tinytroupe.clients.openai_client import OpenAIClient, logger
 # Model names Claude Code accepts besides full "claude-..." ids.
 _CLAUDE_MODEL_ALIASES = {"sonnet", "opus", "haiku", "fable"}
 
+# Credentials that would make Claude Code bill an API key/token instead of using its login.
+_CREDENTIALS_NOT_PASSED_ON = {"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}
+
 
 class ClaudeCodeClient(OpenAIClient):
     """
     Runs LLM calls through the local Claude Code CLI (`claude -p`), so they use the Claude Code
-    login (e.g., a Claude subscription) instead of an API key. ANTHROPIC_API_KEY is deliberately
-    not passed on, so calls are never billed to an API key by accident.
+    login (e.g., a Claude subscription) instead of an API key. ANTHROPIC_API_KEY and
+    ANTHROPIC_AUTH_TOKEN are deliberately not passed on, so calls are never billed to a key by
+    accident; Claude Code's own provider switches (Bedrock, Vertex, Foundry) are honored as deliberate.
 
     It reuses the OpenAI client's retries, caching, concurrency limits and cost statistics:
     only the actual model call is replaced, and its result is wrapped as an OpenAI ChatCompletion.
@@ -36,6 +40,12 @@ class ClaudeCodeClient(OpenAIClient):
 
     def _count_tokens(self, messages: list, model: str):
         return None  # tiktoken counts don't apply to Claude; actual usage comes back with each response
+
+    def get_embedding(self, text, model=None):
+        # Claude has no embeddings API: use the same local model that semantic memory uses
+        from llama_index.core import Settings
+
+        return Settings.embed_model.get_text_embedding(text)
 
     def _raw_model_call(self, model, chat_api_params):
         system_prompt, user_content = _to_cli_input(chat_api_params["messages"])
@@ -78,20 +88,21 @@ class ClaudeCodeClient(OpenAIClient):
                 encoding="utf-8",
                 errors="replace",
                 timeout=chat_api_params.get("timeout"),
-                env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"},
+                env={k: v for k, v in os.environ.items() if k not in _CREDENTIALS_NOT_PASSED_ON},
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),  # no console pop-ups on Windows
             )
         finally:
             with contextlib.suppress(OSError):  # a leftover temp file must not hide the actual outcome
                 os.remove(system_prompt_file)
 
-        _raise_for_cli_failure(completed)
-        result = _final_result_event(completed.stdout)
+        result = _parse_cli_result(completed)
 
         if json_schema is not None and result.get("structured_output") is not None:
             content = json.dumps(result["structured_output"])
         else:
-            content = result.get("result", "")
+            content = result.get("result")
+        if content is None:
+            raise RuntimeError(f"Claude Code CLI returned no content (subtype: {result.get('subtype')}).")
 
         usage = result.get("usage") or {}
         prompt_tokens = sum(usage.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
@@ -148,10 +159,10 @@ def _claude_command() -> tuple:
     )
 
 
-def _raise_for_cli_failure(completed: subprocess.CompletedProcess) -> None:
+def _parse_cli_result(completed: subprocess.CompletedProcess) -> dict:
     """
-    Raises InvalidRequestError (not retried) for failures that retrying cannot fix, and RuntimeError
-    (retried with backoff) for the rest.
+    Returns the CLI's final "result" event. Raises InvalidRequestError (not retried) for failures that
+    retrying cannot fix, and RuntimeError (retried with backoff) for the rest.
     """
     from tinytroupe.clients import InvalidRequestError  # avoid circular import
 
@@ -162,13 +173,15 @@ def _raise_for_cli_failure(completed: subprocess.CompletedProcess) -> None:
             raise InvalidRequestError(f"This Claude Code CLI version lacks a required option, please update it (`claude update`): {stderr[:500]}")
         raise RuntimeError(f"Claude Code CLI returned no result (exit code {completed.returncode}): {stderr[:2000]}")
 
-    if result.get("is_error"):
-        message = str(result.get("result") or result.get("subtype"))
+    if result.get("is_error") or completed.returncode != 0:
+        message = str(result.get("result") or result.get("subtype") or completed.stderr.strip()[:500])
         if result.get("api_error_status") in (401, 403) or "/login" in message:
             raise InvalidRequestError(f"Claude Code is not logged in or not authorized ({message}). Run `claude` once and log in.")
         if result.get("api_error_status") == 404:
             raise InvalidRequestError(f"Claude Code rejected the request, check MODEL in config.ini: {message}")
-        raise RuntimeError(f"Claude Code CLI error: {message}")
+        raise RuntimeError(f"Claude Code CLI error (exit code {completed.returncode}): {message}")
+
+    return result
 
 
 def _cli_model(model):
@@ -228,7 +241,7 @@ def _text_of(content) -> str:
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        return "\n".join(part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text")
+        return "\n".join(part.get("text") or "" for part in content if isinstance(part, dict) and part.get("type") == "text")
     return "" if content is None else str(content)
 
 
@@ -242,7 +255,7 @@ def _content_blocks(content) -> list:
     for part in content:
         if not isinstance(part, dict):
             continue
-        if part.get("type") == "text" and part.get("text", "").strip():
+        if part.get("type") == "text" and (part.get("text") or "").strip():
             blocks.append({"type": "text", "text": part["text"]})
         elif part.get("type") == "image_url":
             url = (part.get("image_url") or {}).get("url", "")

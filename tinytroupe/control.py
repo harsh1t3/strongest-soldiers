@@ -1,9 +1,9 @@
 """
 Simulation controlling mechanisms.
 """
+import contextvars
 import json
 import os
-import tempfile
 import threading
 import traceback
 
@@ -343,13 +343,7 @@ class Simulation:
         """
         logger.debug(f"Now saving cache file to {cache_path}.")
         try:
-            # Create a temporary file next to the target: os.replace fails across drives/filesystems
-            with tempfile.NamedTemporaryFile('w', delete=False, encoding="utf-8",
-                                             dir=os.path.dirname(os.path.abspath(cache_path))) as temp:
-                json.dump(self.cached_trace, temp, indent=4)
-
-            # Replace the original file with the temporary file
-            os.replace(temp.name, cache_path)
+            utils.atomic_write_json(cache_path, self.cached_trace, indent=4)
             self.has_unsaved_cache_changes = False
         except Exception as e:
             traceback_string = ''.join(traceback.format_tb(e.__traceback__))
@@ -385,13 +379,7 @@ class Simulation:
         Checks if the agent is under a transaction.
         """
         with concurrent_execution_lock:
-            # Outside parallel segments, work spawned in worker threads (e.g., agents acting in parallel
-            # within a world step) belongs to the transaction already open in the spawning thread.
-            # ponytail: any open transaction counts as the parent, which assumes one thread drives the simulation;
-            # propagate the parent transaction to worker threads explicitly if several user threads must share one.
-            return self._under_transaction.get(id, False) or (
-                not self._under_parallel_transactions and any(self._under_transaction.values())
-            )
+            return self._under_transaction.get(id, False)
 
     def _clear_communications_buffers(self):
         """
@@ -743,6 +731,13 @@ class Transaction:
         else:
             raise ValueError(f"Unsupported output type: {encoded_output['type']}")
 
+# Identifies the thread that owns the current transaction. Worker threads started with
+# `contextvars.copy_context().run(...)` inherit it, so their transactional calls are nested in the
+# caller's transaction (e.g., agents acting in parallel within a world step) rather than starting
+# their own. Threads started without it (e.g., the factory's parallel segments) get their own.
+_transaction_owner = contextvars.ContextVar("tinytroupe_transaction_owner", default=None)
+
+
 def transactional(parallel=False):
     """
     A helper decorator that makes a function simulation-transactional.
@@ -754,13 +749,19 @@ def transactional(parallel=False):
             obj_sim_id = obj_under_transaction.simulation_id if hasattr(obj_under_transaction, 'simulation_id') else None
 
             logger.debug(f"-----------------------------------------> Transaction: {func.__name__} with args {args[1:]} and kwargs {kwargs} under simulation {obj_sim_id}, parallel={parallel}.")
-            
-            parallel_id = str(threading.current_thread())
-            
-            transaction = Transaction(obj_under_transaction, simulation, func, *args, **kwargs)
-            result = transaction.execute(begin_parallel=parallel, parallel_id=parallel_id)
-            
-            return result
+
+            parallel_id = _transaction_owner.get()
+            token = None
+            if parallel_id is None:
+                parallel_id = str(threading.current_thread())
+                token = _transaction_owner.set(parallel_id)
+
+            try:
+                transaction = Transaction(obj_under_transaction, simulation, func, *args, **kwargs)
+                return transaction.execute(begin_parallel=parallel, parallel_id=parallel_id)
+            finally:
+                if token is not None:
+                    _transaction_owner.reset(token)
         
         return wrapper
     

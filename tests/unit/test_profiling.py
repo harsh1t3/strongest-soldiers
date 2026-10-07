@@ -19,6 +19,13 @@ from tinytroupe.examples import create_oscar_the_architect, create_lisa_the_data
 from testing_utils import *
 
 
+@pytest.fixture(autouse=True)
+def _no_llm_normalizer(monkeypatch):
+    # persona composition uses the LLM-backed Normalizer; without it the Profiler skips that part,
+    # which keeps this file runnable offline (and from spending LLM quota)
+    monkeypatch.setattr("tinytroupe.profiling.Normalizer", None)
+
+
 class TestProfiler:
     """Test suite for the enhanced Profiler class."""
 

@@ -2,7 +2,6 @@ import configparser
 import json
 import logging
 import os
-import tempfile
 import threading
 import time
 from contextlib import contextmanager, suppress
@@ -41,22 +40,8 @@ class LLMCacheBase:
         Saves the API cache to disk as a JSON file.
         The file is replaced atomically, so a crash mid-write can't leave a truncated cache behind.
         """
-        cache_path = os.path.abspath(self.cache_file_name)
         with self._cache_lock:
-            # the temp file must be in the same directory (same filesystem) for os.replace to be atomic
-            fd, temp_path = tempfile.mkstemp(
-                dir=os.path.dirname(cache_path), prefix=os.path.basename(cache_path) + ".", suffix=".tmp"
-            )
-            try:
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    json.dump(self.api_cache, f, ensure_ascii=False)
-                    f.flush()
-                    os.fsync(f.fileno())
-                os.replace(temp_path, cache_path)
-            except BaseException:
-                with suppress(OSError):
-                    os.remove(temp_path)
-                raise
+            utils.atomic_write_json(self.cache_file_name, self.api_cache, ensure_ascii=False)
 
     def _load_cache(self):
         """
@@ -455,13 +440,14 @@ class OpenAIClient(LLMCacheBase):
 
             chat_api_params["reasoning_effort"] = config_manager.get("reasoning_effort")
 
-        # gpt-5 only supports temperature=1.0 (default), so remove temperature param if not default
-        if "gpt-5" in model and "temperature" in chat_api_params:
-            if chat_api_params["temperature"] != 1.0:
-                logger.warning(
-                    f"gpt-5 only supports temperature=1.0, removing custom temperature={chat_api_params['temperature']}"
-                )
-                del chat_api_params["temperature"]
+        # gpt-5 only supports the default sampling values (temperature=1.0, top_p=1.0), so drop other values
+        if "gpt-5" in model:
+            for param in ("temperature", "top_p"):
+                if chat_api_params.get(param, 1.0) != 1.0:
+                    logger.warning(
+                        f"gpt-5 only supports the default {param}, removing custom {param}={chat_api_params[param]}"
+                    )
+                    del chat_api_params[param]
 
         # To make the log cleaner, we remove the messages from the logged parameters
         logged_params = {k: v for k, v in chat_api_params.items() if k != "messages"}
