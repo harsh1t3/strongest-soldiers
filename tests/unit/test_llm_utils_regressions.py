@@ -71,7 +71,7 @@ def test_cache_save_is_atomic_when_interrupted(tmp_path, monkeypatch):
         f.write('{"old": "entry", "ne')
         raise KeyboardInterrupt  # e.g., the user stops the simulation
 
-    with patch("tinytroupe.utils.json.json.dump", crash_mid_write):
+    with patch("json.dump", crash_mid_write):  # the helper calls json.dump through the stdlib module
         try:
             cache._save_cache()
         except KeyboardInterrupt:
