@@ -29,7 +29,7 @@ prints a per-scenario table. Add `--json results.json` to keep the full output, 
 
 ## Result (2026-10-07, upstream 0.7.0 at `a6244b3`)
 
-**1 of 20 scenarios work upstream; 20 of 20 work here.**
+**1 of 21 scenarios work upstream; 21 of 21 work here.**
 
 | What breaks upstream | How it fails there |
 |---|---|
@@ -51,9 +51,10 @@ prints a per-scenario table. Add `--json results.json` to keep the full output, 
 | Clearly different populations are not scored as equivalent | scores 1.00 similarity (1.0 means identical) for opposite data |
 | A confidence interval has the sign of its difference | the difference is +10.0 but its CI is (-12.0, -7.9) |
 | Statistical assumptions can be checked | `ValueError: Metric 'score' not found in control data` |
+| Results survive a model that writes one object per item | the whole extraction comes back empty (`{}`) |
 | A model choice containing punctuation is matched | `"C++"` is matched as `"C"` |
 
-Two scenarios behave the same in both checkouts: JSON with accented characters parses correctly in both, and no
+One scenario behaves the same in both checkouts (JSON with accented characters parses correctly in both), and no
 scenario works upstream but fails here.
 
 Beyond these scenarios, upstream needs an OpenAI or Azure API key before any simulation can run at all, while

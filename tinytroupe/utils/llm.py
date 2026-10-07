@@ -1151,6 +1151,11 @@ def extract_json(text: str) -> dict:
             parsed = json.loads(filtered_text, strict=False)
         except json.JSONDecodeError as e:
             logger.debug(f"Standard JSON parsing failed: {e}")
+            parsed = _parse_concatenated_json_values(filtered_text)
+            if parsed is not None:
+                logger.debug("Parsed several top-level JSON values as a list")
+                return parsed
+
             # If JSON parsing fails, try ast.literal_eval which accepts single quotes
             try:
                 parsed = ast.literal_eval(filtered_text)
@@ -1203,6 +1208,31 @@ def extract_json(text: str) -> dict:
             f"Error occurred while extracting JSON: {e}. Input text: {text}. Filtered text: {filtered_text}"
         )
         return {}
+
+
+def _parse_concatenated_json_values(text: str):
+    """
+    Parses several top-level JSON values written one after another, e.g. `{"a": 1}\n{"a": 2}`, which models
+    produce when asked for several items but not explicitly for an array. Such text is not valid JSON as a
+    whole, so without this the whole response would be discarded.
+
+    Returns the values as a list, or None if the text is not a clean sequence of at least two values.
+    """
+    decoder = json.JSONDecoder(strict=False)
+    values = []
+    index, length = 0, len(text)
+    while index < length:
+        while index < length and text[index].isspace():
+            index += 1
+        if index >= length:
+            break
+        try:
+            value, index = decoder.raw_decode(text, index)
+        except json.JSONDecodeError:
+            return None
+        values.append(value)
+
+    return values if len(values) > 1 else None
 
 
 def extract_code_block(text: str) -> str:

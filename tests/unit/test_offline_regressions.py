@@ -127,6 +127,17 @@ def test_extract_json_keeps_unicode_escapes():
     assert extract_json('{"name": "caf\\u00e9"}') == {"name": "café"}
 
 
+def test_extract_json_keeps_several_top_level_objects():
+    # a model asked for several items often emits one object per item instead of an array
+    assert extract_json('{"name": "Riya", "pays": "no"}\n\n{"name": "Gurpreet", "pays": "maybe"}') == [
+        {"name": "Riya", "pays": "no"},
+        {"name": "Gurpreet", "pays": "maybe"},
+    ]
+    # a single object is still returned as an object, and real garbage still yields {}
+    assert extract_json('{"name": "Riya"}') == {"name": "Riya"}
+    assert extract_json("{not json at all") == {}
+
+
 def test_enumerable_coercion_with_special_characters():
     chat = LLMChat.__new__(LLMChat)
     assert chat._coerce_to_enumerable("I'd go with C++ here.", ["C", "C++", "Python"]) == "C++"

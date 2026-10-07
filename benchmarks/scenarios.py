@@ -302,6 +302,20 @@ def model_json_keeps_unicode():
     return "accents preserved"
 
 
+@scenario("results survive a model that writes one object per item")
+def results_survive_object_per_item():
+    from tinytroupe.utils.llm import extract_json
+
+    # asked for several participants, models often emit one object per participant instead of an array,
+    # which is not valid JSON as a whole; losing it means a whole simulation's findings come back empty
+    extracted = extract_json('{"participant": "Riya", "would_pay": "no"}\n'
+                             '{"participant": "Gurpreet", "would_pay": "maybe"}')
+
+    assert extracted, "the whole extraction came back empty"
+    assert len(extracted) == 2, f"kept {len(extracted)} of the 2 participants"
+    return "both participants kept"
+
+
 @scenario("a model choice is matched even when it contains punctuation")
 def model_choices_with_punctuation_match():
     from tinytroupe.utils.llm import LLMChat
