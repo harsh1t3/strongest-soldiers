@@ -821,7 +821,9 @@ class TinyPerson(JsonSerializableRegistry):
                 """
                 try:
                     recent = self.episodic_memory.retrieve_recent()
-                except Exception:
+                except Exception as e:
+                    # the agent would act as if nothing had been said to it, so say why
+                    logger.error(f"[{self.name}] Could not read recent memories, acting without any stimulus: {e}")
                     return []
 
                 if not recent:

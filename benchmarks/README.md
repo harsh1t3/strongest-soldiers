@@ -27,9 +27,9 @@ python benchmarks/compare_with_upstream.py --baseline ../tinytroupe-upstream
 The driver imports each checkout from its own directory, with its own `config.ini`, in a separate process, and
 prints a per-scenario table. Add `--json results.json` to keep the full output, including tracebacks.
 
-## Result (2026-10-07, upstream 0.7.0 at `a6244b3`)
+## Result (2026-10-08, upstream 0.7.0 at `a6244b3`)
 
-**1 of 21 scenarios work upstream; 21 of 21 work here.**
+**1 of 23 scenarios work upstream; 23 of 23 work here.**
 
 | What breaks upstream | How it fails there |
 |---|---|
@@ -52,6 +52,8 @@ prints a per-scenario table. Add `--json results.json` to keep the full output, 
 | A confidence interval has the sign of its difference | the difference is +10.0 but its CI is (-12.0, -7.9) |
 | Statistical assumptions can be checked | `ValueError: Metric 'score' not found in control data` |
 | Results survive a model that writes one object per item | the whole extraction comes back empty (`{}`) |
+| A failed comparison is not reported as a real score | a made-up 0.500 is reported as a measurement and averaged in |
+| A failed enrichment does not empty a document | the agent's draft is replaced by an empty document |
 | A model choice containing punctuation is matched | `"C++"` is matched as `"C"` |
 
 One scenario behaves the same in both checkouts (JSON with accented characters parses correctly in both), and no

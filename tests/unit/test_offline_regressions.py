@@ -192,3 +192,37 @@ def test_parallel_agent_actions_nest_in_the_step_transaction(tmp_path):
 
     # run() is the single top-level transaction (its steps and the agents' act() calls nest in it)
     assert len(trace) == 1 and "'run'" in str(trace[0][1])
+
+
+def test_failed_proximity_is_reported_not_invented(monkeypatch):
+    """A comparison the model could not make must not be reported as a real, neutral measurement."""
+    import tinytroupe.validation.simulation_validator as validator_module
+
+    monkeypatch.setattr(validator_module, "compute_semantic_proximity", lambda *a, **k: None)
+
+    datasets = [SimulationExperimentDataset(name=name, key_results={"score": [1, 2, 3]},
+                                            justification_summary=f"{name} summary")
+                for name in ("control", "treatment")]
+    result = SimulationExperimentEmpiricalValidator().validate(*datasets, validation_types=["semantic"])
+
+    assert result.semantic_results["summary_comparison"]["proximity_score"] is None
+    assert "could not be computed" in result.semantic_results["summary_comparison"]["justification"]
+    # and the invented score must not reach the headline number
+    assert result.overall_score in (None, 0.0), f"overall score was {result.overall_score}"
+    assert "0.500" not in (result.summary or "")
+
+
+def test_failed_enrichment_keeps_the_agent_draft():
+    """An enrichment that comes back empty must not replace the document with nothing."""
+    from tinytroupe.tools.tiny_word_processor import TinyWordProcessor
+
+    exported = []
+    processor = TinyWordProcessor(
+        exporter=type("Exporter", (), {"export": staticmethod(
+            lambda artifact_name, artifact_data, **kwargs: exported.append(artifact_data))})(),
+        enricher=type("Enricher", (), {"enrich_content": staticmethod(lambda **kwargs: "")})())
+
+    processor.write_document(title="Plan", content="We will open two new stores.", author="Agent")
+
+    written = [d for d in exported if isinstance(d, str)]
+    assert written and all("two new stores" in d for d in written), written

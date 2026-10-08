@@ -20,6 +20,7 @@ import pandas as pd
 
 from tinytroupe.experimentation.statistical_tests import StatisticalTester
 from tinytroupe.utils.semantics import compute_semantic_proximity
+from tinytroupe.validation import logger
 
 # TODO Work-in-Progress below
 
@@ -958,14 +959,19 @@ class SimulationExperimentEmpiricalValidator:
                 context="Comparing summary justifications from simulation experiments"
             )
             
-            # Handle case where LLM call fails or returns invalid data
+            # The call can fail or return something unusable. Report that instead of inventing a neutral
+            # score, which would be presented as a real measurement and pull the overall score with it.
             if summary_proximity_score is None or not isinstance(summary_proximity_score, (int, float)):
-                summary_proximity_score = 0.5  # Default neutral score
-            
-            results["summary_comparison"] = {
-                "proximity_score": summary_proximity_score,
-                "justification": f"Summary semantic proximity score: {summary_proximity_score:.3f}"
-            }
+                logger.error("Could not compute the summary semantic proximity; leaving it out of the score.")
+                results["summary_comparison"] = {
+                    "proximity_score": None,
+                    "justification": "Summary semantic proximity could not be computed."
+                }
+            else:
+                results["summary_comparison"] = {
+                    "proximity_score": summary_proximity_score,
+                    "justification": f"Summary semantic proximity score: {summary_proximity_score:.3f}"
+                }
 
         return results
 
@@ -1009,8 +1015,9 @@ class SimulationExperimentEmpiricalValidator:
                 semantic_scores.append(result.semantic_results["average_proximity"])
             
             # Summary proximity
-            if result.semantic_results.get("summary_comparison"):
-                semantic_scores.append(result.semantic_results["summary_comparison"]["proximity_score"])
+            summary_comparison = result.semantic_results.get("summary_comparison") or {}
+            if summary_comparison.get("proximity_score") is not None:
+                semantic_scores.append(summary_comparison["proximity_score"])
             
             if semantic_scores:
                 semantic_score = sum(semantic_scores) / len(semantic_scores)
@@ -1066,11 +1073,13 @@ class SimulationExperimentEmpiricalValidator:
                     f"Semantic validation: Average proximity score of {avg_proximity:.3f}"
                 )
             
-            summary_comparison = result.semantic_results.get("summary_comparison")
-            if summary_comparison:
+            summary_comparison = result.semantic_results.get("summary_comparison") or {}
+            if summary_comparison.get("proximity_score") is not None:
                 summary_parts.append(
                     f"Summary proximity: {summary_comparison['proximity_score']:.3f}"
                 )
+            elif summary_comparison:
+                summary_parts.append("Summary proximity: could not be computed")
 
         if result.overall_score is not None:
             summary_parts.append(f"Overall validation score: {result.overall_score:.3f}")
@@ -1180,8 +1189,9 @@ class SimulationExperimentEmpiricalValidator:
             # Summary comparison
             summary_comp = semantic.get("summary_comparison")
             if summary_comp:
+                score = summary_comp["proximity_score"]
                 report += "### Summary Comparison\n\n"
-                report += f"**Proximity Score:** {summary_comp['proximity_score']:.3f}\n\n"
+                report += f"**Proximity Score:** {f'{score:.3f}' if score is not None else 'not available'}\n\n"
                 report += f"**Justification:** {summary_comp['justification']}\n\n"
 
         return report

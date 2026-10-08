@@ -302,6 +302,45 @@ def model_json_keeps_unicode():
     return "accents preserved"
 
 
+@scenario("a failed enrichment does not replace a document with an empty one")
+def failed_enrichment_keeps_the_draft():
+    from tinytroupe.tools.tiny_word_processor import TinyWordProcessor
+
+    failing_enricher = type("FailingEnricher", (), {"enrich_content": staticmethod(lambda **kwargs: "")})()
+    exported = []
+    recording_exporter = type("RecordingExporter", (), {
+        "export": staticmethod(lambda artifact_name, artifact_data, **kwargs: exported.append(artifact_data))})()
+    processor = TinyWordProcessor(exporter=recording_exporter, enricher=failing_enricher)
+
+    processor.write_document(title="Quarterly plan", content="We will open two new stores.", author="Agent")
+
+    written = [d for d in exported if isinstance(d, str)]
+    assert written and all(d.strip() for d in written), "an empty document was exported"
+    assert all("two new stores" in d for d in written), f"the draft was lost: {written[0][:120]!r}"
+    return "draft kept"
+
+
+@scenario("a comparison the model could not make is not reported as a real score")
+def failed_comparisons_are_not_invented():
+    import tinytroupe.validation.simulation_validator as validator_module
+    from tinytroupe.validation.simulation_validator import (SimulationExperimentDataset,
+                                                            SimulationExperimentEmpiricalValidator)
+
+    original = validator_module.compute_semantic_proximity
+    validator_module.compute_semantic_proximity = lambda *a, **k: None  # the model call fails
+    try:
+        datasets = [SimulationExperimentDataset(name=name, key_results={"score": [1, 2, 3]},
+                                                justification_summary=f"{name} summary")
+                    for name in ("control", "treatment")]
+        result = SimulationExperimentEmpiricalValidator().validate(*datasets, validation_types=["semantic"])
+    finally:
+        validator_module.compute_semantic_proximity = original
+
+    reported = result.semantic_results["summary_comparison"]["proximity_score"]
+    assert reported is None, f"a failed comparison was reported as a score of {reported}"
+    return "failure reported instead of a number"
+
+
 @scenario("results survive a model that writes one object per item")
 def results_survive_object_per_item():
     from tinytroupe.utils.llm import extract_json

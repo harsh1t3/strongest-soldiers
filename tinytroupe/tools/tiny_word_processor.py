@@ -24,8 +24,9 @@ class TinyWordProcessor(TinyTool):
                                                     content_type="Document",
                                                     context_info=None,
                                                     context_cache=None, verbose=False)
-            # the enricher returns None when the LLM call fails: keep the agent's own draft rather than exporting None
-            if enriched_content is not None:
+            # a failed enrichment yields None or an empty string: keep the agent's own draft rather than
+            # exporting a document with nothing in it
+            if enriched_content and enriched_content.strip():
                 content = enriched_content
             else:
                 logger.warning(f"Could not enrich document '{title}', writing the original content instead.")

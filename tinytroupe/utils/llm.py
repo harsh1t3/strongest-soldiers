@@ -1249,7 +1249,8 @@ def extract_code_block(text: str) -> str:
 
         return text
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"Could not extract a code block: {e}. Input text: {text}")
         return ""
 
 
