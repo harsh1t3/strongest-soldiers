@@ -27,6 +27,12 @@ python benchmarks/compare_with_upstream.py --baseline ../tinytroupe-upstream
 The driver imports each checkout from its own directory, with its own `config.ini`, in a separate process, and
 prints a per-scenario table. Add `--json results.json` to keep the full output, including tracebacks.
 
+`render_comparison.py` runs the same scenarios and writes the summary image used in the main README:
+
+```bash
+python benchmarks/render_comparison.py --baseline ../tinytroupe-upstream
+```
+
 ## Result (2026-10-08, upstream 0.7.0 at `a6244b3`)
 
 **1 of 23 scenarios work upstream; 23 of 23 work here.**

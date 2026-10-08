@@ -1,124 +1,51 @@
-# TinyTroupe 🤠🤓🥸🧐
-[![Core Tests](https://github.com/microsoft/TinyTroupe/actions/workflows/core-tests.yml/badge.svg)](https://github.com/microsoft/TinyTroupe/actions/workflows/core-tests.yml)
+# Strongest Soldiers
 
-<p align="center">
-  <a href="https://trendshift.io/repositories/12206" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12206" alt="Yeah, we are totally fine for not getting to #1, no hard feelings at all." style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
+*LLM-powered multiagent persona simulation for research, product decisions and business insight.*
 
-*LLM-powered multiagent persona simulation for imagination enhancement and business insights.*
+Simulate people with specific personalities, interests and goals. These agents — `TinyPerson`s — listen to
+you and to one another, reply, and go about their lives in simulated `TinyWorld` environments, driven by
+large language models. The point is to *understand* how people might react, not to assist them, so the
+mechanisms here only make sense in a simulation setting.
 
-<p align="center">
-  <img src="./docs/tinytroupe_stage.png" alt="A tiny office with tiny people doing some tiny jobs.">
-</p>
+By default everything runs on a local [Claude Code](https://claude.com/claude-code) login, so no API key is
+needed. See [Claude Code Support](#claude-code-support-default-no-api-key).
 
->[!TIP]
->📄 **New Paper Released!** Check out our [TinyTroupe paper (preprint)](https://arxiv.org/abs/2507.09788) that describes the library and its use cases in detail. You can find the related experiments and complementary material in the [publications/](./publications/) folder.
+Some things it is useful for:
 
-*TinyTroupe* is an experimental Python library that allows the **simulation** of people with specific personalities, interests, and goals. These artificial agents - `TinyPerson`s - can listen to us and one another, reply back, and go about their lives in simulated `TinyWorld` environments. This is achieved by leveraging the power of Large Language Models (LLMs), notably GPT-4, to generate realistic simulated behavior. This allows us to investigate a wide range of **convincing interactions** and **consumer types**, with **highly customizable personas**, under **conditions of our choosing**. The focus is thus on *understanding* human behavior and not on directly *supporting it* (like, say, AI assistants do) -- this results in, among other things, specialized mechanisms that make sense only in a simulation setting. Further, unlike other *game-like* LLM-based simulation approaches, TinyTroupe aims at enlightening productivity and business scenarios, thereby contributing to more successful projects and products. Here are some application ideas to **enhance human imagination**:
-
-  - **Advertisement:** TinyTroupe can **evaluate digital ads (e.g., Bing Ads)** offline with a simulated audience before spending money on them!
-  - **Software Testing:** TinyTroupe can **provide test input** to systems (e.g., search engines, chatbots or copilots) and then **evaluate the results**.
-  - **Training and exploratory data:** TinyTroupe can generate realistic **synthetic data** that can be later used to train models or be subject to opportunity analyses.
-  - **Product and project management:** TinyTroupe can **read project or product proposals** and **give feedback** from the perspective of **specific personas** (e.g., physicians, lawyers, and knowledge workers in general).
-  - **Brainstorming:** TinyTroupe can simulate **focus groups** and deliver great product feedback at a fraction of the cost!
+  - **Advertisement:** Strongest Soldiers can **evaluate digital ads** offline with a simulated audience before spending money on them!
+  - **Software Testing:** Strongest Soldiers can **provide test input** to systems (e.g., search engines, chatbots or copilots) and then **evaluate the results**.
+  - **Training and exploratory data:** Strongest Soldiers can generate realistic **synthetic data** that can be later used to train models or be subject to opportunity analyses.
+  - **Product and project management:** Strongest Soldiers can **read project or product proposals** and **give feedback** from the perspective of **specific personas** (e.g., physicians, lawyers, and knowledge workers in general).
+  - **Brainstorming:** Strongest Soldiers can simulate **focus groups** and deliver great product feedback at a fraction of the cost!
 
 In all of the above, and many others, we hope experimenters can **gain insights** about their domain of interest, and thus make better decisions. 
 
-We are releasing *TinyTroupe* at a relatively early stage, with considerable work still to be done, because we are looking for feedback and contributions to steer development in productive directions. We are particularly interested in finding new potential use cases, for instance in specific industries. 
+We are releasing *Strongest Soldiers* at a relatively early stage, with considerable work still to be done, because we are looking for feedback and contributions to steer development in productive directions. We are particularly interested in finding new potential use cases, for instance in specific industries. 
 
 >[!NOTE] 
 >🚧 **WORK IN PROGRESS: expect frequent changes**.
->TinyTroupe is an ongoing research project, still under **very significant development** and requiring further **tidying up**. In particular, the API is still subject to frequent changes. Experimenting with API variations is essential to shape it correctly, but we are working to stabilize it and provide a more consistent and friendly experience over time. We appreciate your patience and feedback as we continue to improve the library.
+>Strongest Soldiers is an ongoing research project, still under **very significant development** and requiring further **tidying up**. In particular, the API is still subject to frequent changes. Experimenting with API variations is essential to shape it correctly, but we are working to stabilize it and provide a more consistent and friendly experience over time. We appreciate your patience and feedback as we continue to improve the library.
 
 >[!CAUTION] 
 >⚖️ **Read the LEGAL DISCLAIMER.**
->TinyTroupe is for research and simulation only. You are fully responsible for any use you make of the generated outputs. Various important additional legal considerations apply and constrain its use. Please read the full [Legal Disclaimer](#legal-disclaimer) section below before using TinyTroupe.
+>Strongest Soldiers is for research and simulation only. You are fully responsible for any use you make of the generated outputs. Various important additional legal considerations apply and constrain its use. Please read the full [Legal Disclaimer](#legal-disclaimer) section below before using Strongest Soldiers.
 
 
 ## Contents
 
-- 📰 [Latest News](#latest-news)
 - 📚 [Examples](#examples)
 - 🛠️ [Pre-requisites](#pre-requisites)
 - 📥 [Installation](#installation)
 - 🌟 [Principles](#principles)
 - 🏗️ [Project Structure](#project-structure)
 - 📖 [Using the Library](#using-the-library)
-- 🤝 [Contributing](#contributing)
-- 🙏 [Acknowledgements](#acknowledgements)
-- 📜 [Citing TinyTroupe](#how-to-cite-tinytroupe)
+- 📊 [Benchmarks](#benchmarks)
 - ⚖️ [Legal Disclaimer](#legal-disclaimer)
-- ™️ [Trademarks](#trademarks)
 
-
-## LATEST NEWS
-
-<details open>
-<summary><b>[2026-03-28] Release 0.7.0: support for vision modality.</b></summary>
-
-  - Take a look one example [Vision for Product, Diagnosis and Appreciation Feedback (image modality)](./examples/Vision%20for%20Product%2C%20Diagnosis%20and%20Appreciation%20Feedback%20%28image%20modality%29.ipynb) notebook.
-  - LLM API caching now uses JSON instead of pickle.
-
-</details>
-
-<details>
-<summary><b>[2026-02-01] Release 0.6.0 with new features and model updates</b></summary>
-
-  - Default model is now `gpt-5-mini`. **Important:** The GPT-5 model series uses different parameters than the former GPT-4* series, so you may need to adjust your `config.ini` settings accordingly. Legacy models (`gpt-4.1-mini`, `gpt-4o-mini`) are still supported.
-  - Introduces `SimulationExperimentEmpiricalValidator` to compare simulation results against real-world empirical data using statistical tests (t-test, KS-test). This is essential for validating that simulations match actual human behavior.
-  - Introduces `AgentChatJupyterWidget` for interactive conversations with agents directly in Jupyter notebooks.
-  - New cost tracking utilities at client, environment, and agent levels to monitor API expenses.
-  - Adds experimental/limited Ollama support for local models. See [Ollama Support](./docs/guides/ollama.md) for details.
-  - New example notebooks demonstrating empirical validation against real survey data.
-  
-  **Note: GPT-5 model parameters differ from GPT-4*, so please retest your important scenarios and adjust configurations accordingly.**
-
-</details>
-
-<details>
-<summary><b>[2025-07-31] Release 0.5.2</b></summary>
-
-Mostly just changes the default model, which is now set to GPT-4.1-mini. It seems to bring considerable quality improvements. 
-
-**Note that GPT-4.1-mini can have significant differences in behavior w.r.t. to the previous default of GPT-4o-mini, so please make sure you retest your important scenarios using GPT-4.1-mini and adjust accordingly.**
-
-</details>
-
-<details>
-<summary><b>[2025-07-15] Release 0.5.1 with various improvements</b></summary>
-
-  - Released the first version of the [TinyTroupe paper (as a preprint)](https://arxiv.org/abs/2507.09788), which describes the library and its use cases in more detail. You can find the related experiments and complementary material in the [publications/](./publications/) folder.
-  - `TinyPerson`s now include action correction mechanisms, allowing better adherence to persona specification, self-consistency and/or fluency (for details, refer to the paper we are releasing at the same time now).
-  - Substantial improvements to the `TinyPersonFactory` class, which now: uses a plan-based approach to generate new agents, allowing better sampling of larger populations; generate agents in parallel.
-  - `TinyWorld` now run agents in parallel within each simulation step, allowing faster simulations.
-  - `InPlaceExperimentRunner` class introduced to allow running controlled experiments (e.g., A/B testing) in a single file (by simply running it multiple times).
-  - Various standard `Proposition`s were introduced to make it easier to run common verifications and monitoring of agent behavior (e.g., `persona_adherence`, `hard_persona_adherence`, `self_consistency`, `fluency`, etc.).
-  - Internal LLM usage is now better supported via the `LLMChat` class, and also the `@llm` decorator, which transform any standard Python function into an LLM-based one (i.e., by using the docstring as part of the prompt, and some other nuances). This is meant to make it easier to continue advancing TinyTroupe and also allow for some creative explorations of LLM tooling possibilities.
-  - Configuration mechanism has been refactored to allow, besides the static `config.ini` file, also the dynamic programmatic reconfiguration.
-  - Renamed Jupyter notebooks examples for better readability and consistency.
-  - Added many more tests.
-  
-  **Note: this will likely break some existing programs, as the API has changed in some places.**
-
-</details>
-
-<details>
-<summary><b>[2025-01-29] Release 0.4.0 with various improvements</b></summary>
-
-  - Personas have deeper specifications now, including  personality traits, preferences, beliefs, and more. It is likely we'll further expand this in the future. 
-  - `TinyPerson`s can now be defined as JSON files as well, and loaded via the `TinyPerson.load_specification()`, for greater convenience. After loading the JSON file, you can still modify the agent programmatically. See the [examples/agents/](./examples/agents/) folder for examples.
-  - Introduces the concept of *fragments* to allow the reuse of persona elements across different agents. See the [examples/fragments/](./examples/fragments/) folder for examples, and the notebook [Political Compass (customizing agents with fragments)](<./examples/Political Compass (customizing agents with fragments).ipynb>) for a demonstration.
-  - Introduces LLM-based logical `Proposition`s, to facilitate the monitoring of agent behavior.
-  - Introduces `Intervention`s, to allow the specification of event-based modifications to the simulation.
-  - Submodules have their own folders now, to allow better organization and growth.
-  
-  **Note: this will likely break some existing programs, as the API has changed in some places.**
-
-</details>
 
 ## Examples
 
-To get a sense of what TinyTroupe can do, here are some examples of its use. These examples are available in the [examples/](./examples/) folder, and you can either inspect the pre-compiled Jupyter notebooks or run them yourself locally. Notice the interactive nature of TinyTroupe experiments -- just like you use Jupyter notebooks to interact with data, you can use TinyTroupe to interact with simulated people and environments, for the purpose of gaining insights.
+To get a sense of what Strongest Soldiers can do, here are some examples of its use. These examples are available in the [examples/](./examples/) folder, and you can either inspect the pre-compiled Jupyter notebooks or run them yourself locally. Notice the interactive nature of Strongest Soldiers experiments -- just like you use Jupyter notebooks to interact with data, you can use Strongest Soldiers to interact with simulated people and environments, for the purpose of gaining insights.
 
 >[!NOTE]
 > ♻️ Examples might be updated over time, so the screenshots below might not exactly match what you see when you run them locally. However, the overall structure and content should be similar.
@@ -140,7 +67,6 @@ The conversation can go on for a few steps to dig deeper and deeper until the co
 </p>
 
 
-
 ### 🧪**EXAMPLE 2** *(from [Advertisement for TV.ipynb](./examples/Advertisement%20for%20TV.ipynb))*
 Let's evaluate some online ads options to pick the best one. Here's one example output for TV ad evaluation:
 
@@ -154,21 +80,7 @@ Now, instead of having to carefully read what the agents said, we can extract th
   <img src="./docs/example_screenshot_tv-ad-2.png" alt="An example.">
 </p>
 
-### 🧪 **EXAMPLE 3** *(from [Product Brainstorming.ipynb](./examples/Product%20Brainstorming.ipynb))*
-And here's a focus group starting to brainstorm about new AI features for Microsoft Word. Instead of interacting with each agent individually, we manipulate the environment to make them interact with each other:
-
-<p align="center">
-  <img src="./docs/example_screenshot_brainstorming-1.png" alt="An example.">
-</p>
-
-After running a simulation, we can extract the results in a machine-readable manner, to reuse elsewhere (e.g., a report generator); here's what we get for the above brainstorming session:
-
-<p align="center">
-  <img src="./docs/example_screenshot_brainstorming-2.png" alt="An example.">
-</p>
-
-
-### 🧪 **EXAMPLE 4** *(from [Bottled Gazpacho Market Research 5 (with behavior correction).ipynb](<./examples/Bottled%20Gazpacho%20Market%20Research%205%20(with%20behavior%20correction).ipynb>))*
+### 🧪 **EXAMPLE 3** *(from [Bottled Gazpacho Market Research 5 (with behavior correction).ipynb](<./examples/Bottled%20Gazpacho%20Market%20Research%205%20(with%20behavior%20correction).ipynb>))*
 One of the most important aspects of simulation is **validating** results against real-world data. In this example, we simulate a market research survey about bottled Gazpacho (a cold Spanish soup) and then compare the simulation results against an actual survey conducted with real people:
 
 <p align="center">
@@ -182,7 +94,7 @@ We use statistical tests (t-test, KS-test) to compare the distribution of respon
 </p>
 
 
-### 🧪 **EXAMPLE 5** *(from [AI-enabled Children Story Telling Market Research 2.ipynb](<./examples/AI-enabled%20Children%20Story%20Telling%20Market%20Research%202.ipynb>))*
+### 🧪 **EXAMPLE 4** *(from [AI-enabled Children Story Telling Market Research 2.ipynb](<./examples/AI-enabled%20Children%20Story%20Telling%20Market%20Research%202.ipynb>))*
 Another empirical validation example, this time for a more complex ranking task. We simulate parents evaluating different AI-enabled story-telling device options for their children, and then compare the simulation results against real survey data:
 
 <p align="center">
@@ -208,20 +120,20 @@ To run the library, you need:
       * For Azure OpenAI Service, you will need to set the `AZURE_OPENAI_KEY` and `AZURE_OPENAI_ENDPOINT` environment variables to your API key and endpoint, respectively.
       * For OpenAI, you will need to set the `OPENAI_API_KEY` environment variable to your API key.
       * For example, on Linux/macOS: `export OPENAI_API_KEY=your-key-here`, or on Windows (PowerShell): `$env:OPENAI_API_KEY="your-key-here"`. To persist it, add it to your shell profile or use `setx OPENAI_API_KEY "your-key-here"` on Windows.
-  - By default, TinyTroupe `config.ini` is set to use Claude Code with `sonnet` as the main model. You can customize these values by including your own `config.ini` file in the same folder as the program or notebook you are running. An example of a `config.ini` file is provided in the [examples/](./examples/) folder.
+  - By default, Strongest Soldiers `config.ini` is set to use Claude Code with `sonnet` as the main model. You can customize these values by including your own `config.ini` file in the same folder as the program or notebook you are running. An example of a `config.ini` file is provided in the [examples/](./examples/) folder.
 
 >[!IMPORTANT]
 > **Content Filters**: To ensure no harmful content is generated during simulations, it is strongly recommended to use content filters whenever available at the API level. In particular, **if using Azure OpenAI, there's extensive support for content moderation, and we urge you to use it.** For details about how to do so, please consult [the corresponding Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter). If content filters are in place, and an API call is rejected by them, the library will raise an exception, as it will be unable to proceed with the simulation at that point.
 
 ### Ollama Support
-TinyTroupe is developed primarily with OpenAI models and compatible endpoints in mind, in order to simplify development and focus on making the best use of specific models, instead of investing time to try to make it work well with any model (which might not be feasible anyway). **So, if you can, please use OpenAI models and compatible endpoints.** That said, there's significant community demand for local model support, so we are now experimenting with making this available via partial [Ollama](https://ollama.com/) support and the help of community contributors. Furtheremore, another reason to use local models would be to do research in custom models designed specifically for persona simulation -- ultimately, this might be the best reason to support such a feature. In any case, this is not currently a priority for the core team, though we are doing what we can to allow this possibility. 
+Strongest Soldiers is developed primarily with OpenAI models and compatible endpoints in mind, in order to simplify development and focus on making the best use of specific models, instead of investing time to try to make it work well with any model (which might not be feasible anyway). **So, if you can, please use OpenAI models and compatible endpoints.** That said, there's significant community demand for local model support, so we are now experimenting with making this available via partial [Ollama](https://ollama.com/) support and the help of community contributors. Furtheremore, another reason to use local models would be to do research in custom models designed specifically for persona simulation -- ultimately, this might be the best reason to support such a feature. In any case, this is not currently a priority for the core team, though we are doing what we can to allow this possibility. 
 
-See [Ollama Support](./docs/guides/ollama.md) for details on how to use Ollama with TinyTroupe.
+See [Ollama Support](./docs/guides/ollama.md) for details on how to use Ollama with Strongest Soldiers.
 
 ### Claude Code Support (default, no API key)
-By default, TinyTroupe runs its LLM calls through the local [Claude Code](https://claude.com/claude-code) CLI (`claude -p`), using its login (e.g., your Claude subscription and its usage limits). No API key is needed, and `ANTHROPIC_API_KEY` is deliberately not passed to Claude Code, so calls are never billed to an API key by accident. Embeddings, which Claude does not provide, are computed locally with a small model (downloaded once on first use, ~70 MB).
+By default, Strongest Soldiers runs its LLM calls through the local [Claude Code](https://claude.com/claude-code) CLI (`claude -p`), using its login (e.g., your Claude subscription and its usage limits). No API key is needed, and `ANTHROPIC_API_KEY` is deliberately not passed to Claude Code, so calls are never billed to an API key by accident. Embeddings, which Claude does not provide, are computed locally with a small model (downloaded once on first use, ~70 MB).
 
-1. Install Claude Code and log in once by running `claude`. TinyTroupe finds it on your `PATH`, in `~/.local/bin`, or bundled with the Claude Code extension of VS Code, Cursor or Windsurf.
+1. Install Claude Code and log in once by running `claude`. Strongest Soldiers finds it on your `PATH`, in `~/.local/bin`, or bundled with the Claude Code extension of VS Code, Cursor or Windsurf.
 2. Optionally pick the models in the `config.ini` of your working directory:
     ```ini
     [OpenAI]
@@ -241,16 +153,16 @@ Each LLM call starts a `claude -p` process, so it is slower than calling an API 
 1. If Conda is not installed, you can get it from [here](https://docs.anaconda.com/anaconda/install/). You can also use other Python distributions, but we'll assume Conda here for simplicity.
 2. Create a new Python environment: 
       ```bash
-      conda create -n tinytroupe python=3.10
+      conda create -n strongest-soldiers python=3.10
       ```
 3. Activate the environment: 
       ```bash
-      conda activate tinytroupe
+      conda activate strongest-soldiers
       ```
 4. Make sure you have either Azure OpenAI or OpenAI API keys set as environment variables, as described in the [Pre-requisites](#pre-requisites) section.
 5. Use `pip` to install the library **directly from this repository** (we **will not install from PyPI**):
    ```bash
-   pip install git+https://github.com/microsoft/TinyTroupe.git@main
+   pip install git+https://github.com/harsh1t3/strongest-soldiers.git@main
    ```
 
 Now you should be able to `import tinytroupe` in your Python code or Jupyter notebooks. 🥳
@@ -263,8 +175,8 @@ To actually run the examples, you need to download them to your local machine. Y
 
 1. Clone the repository, as we'll perform a local install (we **will not install from PyPI**):
     ```bash
-    git clone https://github.com/microsoft/tinytroupe
-    cd tinytroupe
+    git clone https://github.com/harsh1t3/strongest-soldiers.git
+    cd strongest-soldiers
     ```
 2. You can now run the examples in the [examples/](./examples/) folder, or adapt them to create your own custom simulations. The examples are Jupyter notebooks, so you can start them with:
     ```bash
@@ -275,11 +187,11 @@ To actually run the examples, you need to download them to your local machine. Y
 
 ### Local development
 
-If you want to modify TinyTroupe itself, you can install it in editable mode (i.e., changes to the code will be reflected immediately):
+If you want to modify Strongest Soldiers itself, you can install it in editable mode (i.e., changes to the code will be reflected immediately):
 1. Clone the repository, as we'll perform a local install (we **will not install from PyPI**):
     ```bash
-    git clone https://github.com/microsoft/tinytroupe
-    cd tinytroupe
+    git clone https://github.com/harsh1t3/strongest-soldiers.git
+    cd strongest-soldiers
     ```
 2. Install the library in editable mode (add `[dev]` to also get the test and notebook tooling, and `[ui]` for the Jupyter chat widget):
     ```bash
@@ -287,7 +199,7 @@ If you want to modify TinyTroupe itself, you can install it in editable mode (i.
     ```
 
 ## Principles 
-Recently, we have seen LLMs used to simulate people (such as [this](https://github.com/joonspk-research/generative_agents)), but largely in a “game-like” setting for contemplative or entertainment purposes. There are also libraries for building multiagent systems for problem-solving and assistive AI, like [Autogen](https://microsoft.github.io/autogen/) and [Crew AI](https://docs.crewai.com/). What if we combine these ideas and simulate people to support productivity tasks? TinyTroupe is our attempt. To do so, it follows these principles:
+Recently, we have seen LLMs used to simulate people (such as [this](https://github.com/joonspk-research/generative_agents)), but largely in a “game-like” setting for contemplative or entertainment purposes. There are also libraries for building multiagent systems for problem-solving and assistive AI, like [Autogen](https://microsoft.github.io/autogen/) and [Crew AI](https://docs.crewai.com/). What if we combine these ideas and simulate people to support productivity tasks? Strongest Soldiers is our attempt. To do so, it follows these principles:
 
   1. **Programmatic**: agents and environments are defined programmatically (in Python and JSON), allowing very flexible uses. They can also underpin other software apps!
   2. **Analytical**: meant to improve our understanding of people, users and society. Unlike entertainment applications, this is one aspect that is critical for business and productivity use cases. This is also why we recommend using Jupyter notebooks for simulations, just like one uses them for data analysis.
@@ -296,13 +208,13 @@ Recently, we have seen LLMs used to simulate people (such as [this](https://gith
   5. **Utilities-heavy**: provides many mechanisms to facilitate specifications, simulations, extractions, reports, validations, etc. This is one area in which dealing with *simulations* differs significantly from *assistance* tools.
   6. **Experiment-oriented**: simulations are defined, run, analyzed and refined by an *experimenter* iteratively; suitable experimentation tools are thus provided. *See our [previous paper](https://www.microsoft.com/en-us/research/publication/the-case-for-experiment-oriented-computing/) for more on this.*
 
-Together, these are meant to make TinyTroupe a powerful and flexible **imagination enhancement tool** for business and productivity scenarios.
+Together, these are meant to make Strongest Soldiers a powerful and flexible **imagination enhancement tool** for business and productivity scenarios.
 
 ### Assistants vs. Simulators
 
 One common source of confusion is to think all such AI agents are meant for assisting humans. How narrow, fellow homosapiens! Have you not considered that perhaps we can simulate artificial people to understand real people? Truly, this is our aim here -- TinyTroup is meant to simulate and help understand people! To further clarify this point, consider the following differences:
 
-| Helpful AI Assistants | AI Simulations of Actual Humans (TinyTroupe)                                                          |
+| Helpful AI Assistants | AI Simulations of Actual Humans (Strongest Soldiers)                                                          |
 |----------------------------------------------|--------------------------------------------------------------------------------|
 |   Strives for truth and justice              |   Many different opinions and morals                                           |
 |   Has no “past” – incorporeal                |   Has a past of toil, pain and joy                                             |
@@ -312,23 +224,22 @@ One common source of confusion is to think all such AI agents are meant for assi
 |   Meanwhile, help users accomplish tasks     |   Meanwhile, help users understand other people and users – it is a “toolbox”! |
 
 
-
 ## Project Structure
 
 The project is structured as follows:
   - `/tinytroupe`: contains the Python library itself. In particular:
     * Each submodule here might contain a `prompts/` folder with the prompts used to call the LLMs.
   - `/tests`: contains the unit tests for the library. A quick, cached run is `pytest --use_cache -m "core and not slow"` (see `tests/README.md`). Note that `test.bat` refreshes the cache, i.e., it re-runs every LLM call.
-  - `/benchmarks`: a deterministic, LLM-free comparison of this fork against upstream TinyTroupe (see `benchmarks/README.md`).
+  - `/benchmarks`: a deterministic, LLM-free comparison of this fork against upstream Strongest Soldiers (see `benchmarks/README.md`).
   - `/examples`: contains examples that show how to use the library, mainly using Jupyter notebooks (for greater readability), but also as pure Python scripts.
   - `/data`: any data used by the examples or the library.
   - `/docs`: documentation for the project.
-  - `/publications`: contains artifacts related to research publications associated with the TinyTroupe project.
+  - `/publications`: contains artifacts related to research publications associated with the Strongest Soldiers project.
 
 
 ## Using the Library
 
-As any multiagent system, TinyTroupe provides two key abstractions:
+As any multiagent system, Strongest Soldiers provides two key abstractions:
   - `TinyPerson`, the *agents* that have personality, receive stimuli and act upon them.
   - `TinyWorld`, the *environment* in which the agents exist and interact.
 
@@ -341,7 +252,7 @@ Let's see some examples of how to use these and also learn about other mechanism
 A `TinyPerson` is a simulated person with specific personality traits, interests, and goals. As each such simulated agent progresses through its life, it receives stimuli from the environment and acts upon them. The stimuli are received through the `listen`, `see` and other similar methods, and the actions are performed through the `act` method. Convenience methods like `listen_and_act` are also provided.
 
 
-Each such agent contains a lot of unique details, which is the source of its realistic behavior. This, however, means that it takes significant effort to specify an agent manually. Hence, for convenience, `TinyTroupe` provides some easier ways to get started or generate new agents.
+Each such agent contains a lot of unique details, which is the source of its realistic behavior. This, however, means that it takes significant effort to specify an agent manually. Hence, for convenience, `Strongest Soldiers` provides some easier ways to get started or generate new agents.
 
 To begin with, `tinytroupe.examples` contains some pre-defined agent builders that you can use. For example, `tinytroupe.examples.create_lisa_the_data_scientist` creates a `TinyPerson` that represents a data scientist called Lisa. You can use it as follows:
 
@@ -369,8 +280,8 @@ To see how to define your own agents from scratch, you can check Lisa's source. 
         ],
         "occupation": {
             "title": "Data Scientist",
-            "organization": "Microsoft, M365 Search Team",
-            "description": "You are a data scientist working at Microsoft in the M365 Search team. Your primary role is to analyze user behavior and feedback data to improve the relevance and quality of search results. You build and test machine learning models for search scenarios like natural language understanding, query expansion, and ranking. Accuracy, reliability, and scalability are at the forefront of your work. You frequently tackle challenges such as noisy or biased data and the complexities of communicating your findings and recommendations effectively. Additionally, you ensure all your data and models comply with privacy and security policies."
+            "organization": "Acme Corp, Search Team",
+            "description": "You are a data scientist working at Acme Corp in the Search team. Your primary role is to analyze user behavior and feedback data to improve the relevance and quality of search results. You build and test machine learning models for search scenarios like natural language understanding, query expansion, and ranking. Accuracy, reliability, and scalability are at the forefront of your work. You frequently tackle challenges such as noisy or biased data and the complexities of communicating your findings and recommendations effectively. Additionally, you ensure all your data and models comply with privacy and security policies."
         },
         "style": "Professional yet approachable. You communicate clearly and effectively, ensuring technical concepts are accessible to diverse audiences.",
         "personality": {
@@ -405,10 +316,10 @@ The other is by defining the agent programmatically, with statements like these:
   lisa.define("nationality", "Canadian")
   lisa.define("occupation", {
                 "title": "Data Scientist",
-                "organization": "Microsoft",
+                "organization": "Acme Corp",
                 "description":
                 """
-                You are a data scientist. You work at Microsoft, in the M365 Search team. Your main role is to analyze 
+                You are a data scientist. You work at Acme Corp, in the Search team. Your main role is to analyze 
                 user behavior and feedback data, and use it to improve the relevance and quality of the search results. 
                 You also build and test machine learning models for various search scenarios, such as natural language 
                 understanding, query expansion, and ranking. You care a lot about making sure your data analysis and 
@@ -585,7 +496,7 @@ Oscar --> Lisa: [CONVERSATION]
 
 ### Interactive Agent Exploration
 
-TinyTroupe provides a Jupyter widget for interactive conversations with agents, which is useful for exploring agent behavior and debugging:
+Strongest Soldiers provides a Jupyter widget for interactive conversations with agents, which is useful for exploring agent behavior and debugging:
 
 ```python
 from tinytroupe.ui import AgentChatJupyterWidget
@@ -611,7 +522,7 @@ This helps validate that your generated population has the diversity and charact
 
 ### Cost Tracking
 
-Simulations can incur significant API costs. TinyTroupe provides cost tracking at multiple levels:
+Simulations can incur significant API costs. Strongest Soldiers provides cost tracking at multiple levels:
 
 ```python
 from tinytroupe.clients import client
@@ -650,7 +561,7 @@ config_manager.update("action_generator_quality_threshold", 6)
 
 ### Empirical Validation
 
-One of the most important aspects of simulation is **validating** results against real-world data. TinyTroupe provides the `SimulationExperimentEmpiricalValidator` class and the `validate_simulation_experiment_empirically` function to compare simulation outputs against empirical control data using statistical tests.
+One of the most important aspects of simulation is **validating** results against real-world data. Strongest Soldiers provides the `SimulationExperimentEmpiricalValidator` class and the `validate_simulation_experiment_empirically` function to compare simulation outputs against empirical control data using statistical tests.
 
 ```python
 from tinytroupe.validation import SimulationExperimentEmpiricalValidator, validate_simulation_experiment_empirically
@@ -692,7 +603,7 @@ This allows you to quantitatively assess how well your simulation matches real-w
 
 ### Caching
 Calling LLM APIs can be expensive, thus caching strategies are important to help reduce that cost.
-TinyTroupe comes with two such mechanisms: one for the simulation state, another for the LLM calls themselves.
+Strongest Soldiers comes with two such mechanisms: one for the simulation state, another for the LLM calls themselves.
 
 
 #### Caching Simulation State
@@ -755,7 +666,7 @@ The programmatic overrides take precedence over the values in the `config.ini` f
 
 ### Other Utilities
 
-TinyTroupe provides additional utilities and conveniences not covered in detail above:
+Strongest Soldiers provides additional utilities and conveniences not covered in detail above:
   
   - `TinyTool`: simulated tools that can be used by `TinyPerson`s.
   - `TinyStory`: helps you create and manage narratives told through simulations.
@@ -767,95 +678,32 @@ TinyTroupe provides additional utilities and conveniences not covered in detail 
   
 In general, elements that represent simulated entities or complementary mechanisms are prefixed with `Tiny`, while those that are more infrastructural are not. This emphasizes the simulated nature of the elements that are part of the simulation itself.
 
-## Contributing
+## Benchmarks
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+`benchmarks/` holds a comparison against the upstream baseline this library grew out of: 23 realistic uses of
+the public API, each of which either works or fails for a stated reason. Every scenario is deterministic and
+needs no LLM, API key or network access, so the result is a like-for-like comparison anyone can reproduce:
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-### What and How to Contribute
-We need all sorts of things, but we are looking mainly for new interesting use cases demonstrations, or even just domain-specific application ideas. If you are a domain expert in some area that could benefit from TinyTroupe, we'd love to hear from you.
-
-Beyond that, many other aspects can be improved, such as:
-  - Memory mechanisms.
-  - Data grounding mechanisms.
-  - Reasoning mechanisms.
-  - New environment types.
-  - Interfacing with the external world.
-  - ... and more ...
-
-Please note that anything that you contribute might be released as open-source (under MIT license).
-
-If you would like to make a contribution, please try to follow these general guidelines:
-  - **Tiny naming convention**: If you are implementing a experimenter-facing simulated element (e.g., an agent or environment type) or closely related (e.g., agent factories, or content enrichers), and it sounds good, call your new *XYZ* as *TinyXYZ* :-) On the other hand, auxiliary and infrastructural mechanisms should not start with the "Tiny" prefix. The idea is to emphasize the simulated nature of the elements that are part of the simulation itself.
-  - **Tests:** If you are writing some new mechanism, please also create at least a unit test `tests/unit/`, and if you can a functional scenario test (`tests/scenarios/`).
-  - **Demonstrations:** If you'd like to demonstrate a new scenario, please design it preferably as a new Jupyter notebook within `examples/`.
-  - **Microsoft:** If you are implementing anything that is Microsoft-specific and non-confidential, please put it under a `.../microsoft/` folder.
-
-## Acknowledgements
-
-TinyTroupe started as an internal Microsoft hackathon project, and expanded over time. The TinyTroupe core team currently consists of:
-  - Paulo Salem (TinyTroupe's creator and current lead)
-  - Christopher Olsen (Engineering/Science)
-  - Yi Ding (Product Management)
-  - Prerit Saxena (Engineering/Science)
-  
-Current advisors:
-  - Robert Sim (Engineering/Science)
-
-Other special contributions were made by:
-  - Nilo Garcia Silveira: initial agent validation ideas and related implementation; general initial feedback and insights; name suggestions.
-  - Olnei Fonseca: initial agent validation ideas; general initial feedback and insights; naming suggestions.
-  - Robert Sim: synthetic data generation scenarios expertise and implementation.
-  - Paulo Freire: synthetic data generation example expertise and implementation.
-  - Carlos Costa: synthetic data generation scenarios expertise and implementation.
-  - Bryant Key: advertising scenario domain expertise and insights.
-  - Barbara da Silva: implementation related to agent memory management.
-  
-  
- ... are you missing here? Please remind us!
-
-## Citing TinyTroupe
-
-Please cite the introductory TinyTroupe paper when using TinyTroupe in your work. The paper is currently under review, but you can find the preprint on Arxiv.
-
-> Paulo Salem, Robert Sim, Christopher Olsen, Prerit Saxena, Rafael Barcelos, Yi Ding. (2025). **TinyTroupe: An LLM-powered Multiagent Persona Simulation Toolkit**. ArXiv preprint: [2507.09788](https://arxiv.org/abs/2507.09788). *GitHub repository available at https://github.com/microsoft/TinyTroupe.*
- 
-In BibTeX format, you can use the following entry:
-
-```bibtex
-@article{tinytroupe2025,
-  author       = {Paulo Salem and Robert Sim and Christopher Olsen and Prerit Saxena and Rafael Barcelos and Yi Ding},
-  title        = {TinyTroupe: An LLM-powered Multiagent Persona Simulation Toolkit},
-  journal      = {arXiv preprint arXiv:2507.09788},
-  year         = {2025},
-  archivePrefix= {arXiv},
-  eprint       = {2507.09788},
-  note         = {GitHub repository: \url{https://github.com/microsoft/TinyTroupe}}
-}
+```bash
+git clone https://github.com/microsoft/tinytroupe ../tinytroupe-upstream
+python benchmarks/compare_with_upstream.py --baseline ../tinytroupe-upstream
 ```
+
+<p align="center">
+  <img src="./docs/benchmark_comparison.png" alt="23 of 23 scenarios work here; 1 of 23 works upstream.">
+</p>
+
+What this does *not* measure is how realistic the simulated people are — that depends on the model behind the
+library. It answers a narrower question: given the same documented API call, does the library do what its
+documentation says? See [benchmarks/README.md](./benchmarks/README.md) for each scenario and how upstream fails it.
 
 ## Legal Disclaimer
 
- TinyTroupe is for research and simulation only. TinyTroupe is a research and experimental technology, which relies on Artificial Intelligence (AI) models to generate text  content. The AI system output may include unrealistic, inappropriate, harmful or inaccurate results, including factual errors. You are responsible for reviewing the generated content (and adapting it if necessary) before using it, as you are fully responsible for determining its accuracy and fit for purpose. We advise using TinyTroupe’s outputs for insight generation and not for direct decision-making. Generated outputs do not reflect the opinions of Microsoft. You are fully responsible for any use you make of the generated outputs. For more information regarding the responsible use of this technology, see the [RESPONSIBLE_AI_FAQ.md](./RESPONSIBLE_AI_FAQ.md).
+ Strongest Soldiers is for research and simulation only. Strongest Soldiers is a research and experimental technology, which relies on Artificial Intelligence (AI) models to generate text content. The AI system output may include unrealistic, inappropriate, harmful or inaccurate results, including factual errors. You are responsible for reviewing the generated content (and adapting it if necessary) before using it, as you are fully responsible for determining its accuracy and fit for purpose. We advise using Strongest Soldiers' outputs for insight generation and not for direct decision-making. You are fully responsible for any use you make of the generated outputs. For more information regarding the responsible use of this technology, see the [RESPONSIBLE_AI_FAQ.md](./RESPONSIBLE_AI_FAQ.md).
 
  **PROHIBITED USES**:
-TinyTroupe  is not intended to simulate sensitive (e.g. violent or sexual) situations. Moreover, outputs must not be used to deliberately deceive, mislead or harm people in any way. You are fully responsible for any use you make and must comply with all applicable laws and regulations.
+Strongest Soldiers is not intended to simulate sensitive (e.g. violent or sexual) situations. Moreover, outputs must not be used to deliberately deceive, mislead or harm people in any way. You are fully responsible for any use you make and must comply with all applicable laws and regulations.
 
-## Trademarks
+## Third-party notices
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
-
-
+Portions of this software are used under the MIT License; see [LICENSE](./LICENSE) for the full notice.
