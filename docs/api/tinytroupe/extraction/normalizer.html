@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>tinytroupe.extraction.normalizer API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>tinytroupe.extraction.normalizer</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import textwrap
+from typing import List, Optional, Union
+
+import pandas as pd
+
+import tinytroupe.utils as utils
+from tinytroupe.clients import client
+from tinytroupe.extraction import logger
+from tinytroupe.utils.llm import LLMChat
+
+
+class Normalizer:
+    &#34;&#34;&#34;
+    A mechanism to normalize passages, concepts and other textual elements.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        elements: List[str],
+        n: int,
+        verbose: bool = False,
+        max_length: Optional[int] = None,
+    ):
+        &#34;&#34;&#34;
+        Normalizes the specified elements.
+
+        Args:
+            elements (list): The elements to normalize.
+            n (int): The number of normalized elements to output.
+            verbose (bool, optional): Whether to print debug messages. Defaults to False.
+        Args:
+            elements (list): The elements to normalize.
+            n (int): The number of normalized elements to output.
+            verbose (bool, optional): Whether to print debug messages. Defaults to False.
+            max_length (int, optional): If provided, each normalized output element MUST NOT
+                exceed this many characters. The LLM will be instructed to produce concise
+                abstractions; as a safety net we also truncate/merge locally if still too long.
+        &#34;&#34;&#34;
+        # ensure elements are unique
+        self.elements = list(set(elements))
+
+        self.n = n
+        self.verbose = verbose
+        self.max_length = max_length
+
+        # a JSON-based structure, where each output element is a key to a list of input elements that were merged into it
+        self.normalized_elements = None
+        # a dict that maps each input element to its normalized output. This will be used as cache later.
+        self.normalizing_map = {}
+
+        rendering_configs = {&#34;n&#34;: n, &#34;elements&#34;: self.elements}
+        if max_length is not None:
+            rendering_configs[&#34;max_length&#34;] = max_length
+
+        logger.info(
+            f&#34;Computing up to {n} normalized elements from {len(self.elements)} originals (may return fewer if clusters merge).&#34;
+        )
+
+        # Use LLMChat for robust structured JSON output
+        chat = LLMChat(
+            system_template_name=&#34;normalizer.system.mustache&#34;,
+            user_template_name=&#34;normalizer.user.mustache&#34;,
+            base_module_folder=&#34;extraction&#34;,
+            output_type=dict,  # Request structured dict output
+            enable_json_output_format=True,
+            enable_justification_step=False,
+            enable_reasoning_step=False
+        )
+        
+        result = chat.call(**rendering_configs)
+
+        debug_msg = f&#34;Normalization result from LLMChat: {result}&#34;
+        logger.debug(debug_msg)
+        if self.verbose:
+            print(debug_msg)
+
+        logger.debug(f&#34;Raw LLM result: {result}&#34;)
+        logger.debug(f&#34;Result type: {type(result)}&#34;)
+        if self.verbose:
+            print(f&#34;Raw LLM result: {result}&#34;)
+            print(f&#34;Result type: {type(result)}&#34;)
+
+    # Normalize result structure to a dict[str, list[str]] mapping
+    # Expected format: {&#34;canonical_label&#34;: [list, of, originals], ...}
+        mapping = {}
+        if isinstance(result, dict):
+            for k, v in result.items():
+                if isinstance(v, (list, set, tuple)):
+                    originals = [str(x) for x in v if x]
+                else:
+                    originals = [str(v)] if v else []
+                mapping[str(k)] = originals
+        else:
+            # Unknown structure: fall back to identity over provided elements
+            logger.warning(f&#34;Normalizer received unexpected result format {type(result)}; falling back to identity mapping.&#34;)
+            mapping = {e: [e] for e in self.elements}
+        # Remove empties
+        mapping = {k: v for k, v in mapping.items() if k and v}
+
+        # Enforce HARD upper bound: never expose more than self.n categories
+        if len(mapping) &gt; self.n:
+            logger.warning(
+                f&#34;Normalizer produced {len(mapping)} categories exceeding the cap {self.n}; merging overflow into &#39;Other&#39;.&#34;
+            )
+            # Sort keys by descending size of originals so we retain the largest/most meaningful clusters
+            sorted_keys = sorted(mapping.keys(), key=lambda k: len(mapping[k]), reverse=True)
+            keep = sorted_keys[: self.n - 1] if self.n &gt; 1 else []
+            overflow = sorted_keys[len(keep):]
+            other_bucket: List[str] = []
+            for k in overflow:
+                other_bucket.extend(mapping[k])
+                del mapping[k]
+            if self.n == 1:
+                # Single bucket scenario: collapse everything into one abstraction
+                merged_label = keep[0] if keep else &#34;Other&#34;
+                if not keep:
+                    mapping = {merged_label: other_bucket}
+                else:
+                    # Add overflow items into the sole kept cluster
+                    mapping[merged_label].extend(other_bucket)
+            else:
+                mapping[&#34;Other&#34;] = other_bucket
+
+        # Safety: if still somehow &gt; n (edge race), truncate deterministically
+        if len(mapping) &gt; self.n:
+            logger.warning(
+                f&#34;Post-merge category count still {len(mapping)} &gt; {self.n}; truncating extras.&#34;  # pragma: no cover
+            )
+            truncated = {}
+            for i, (k, v) in enumerate(sorted(mapping.items(), key=lambda kv: len(kv[1]), reverse=True)):
+                if i &lt; self.n:
+                    truncated[k] = v
+            mapping = truncated
+
+        # Enforce maximum length locally (merge clusters whose canonical label is shortened)
+        def _shorten(label: str, max_len: int) -&gt; str:
+            if len(label) &lt;= max_len:
+                return label
+            # Prefer first sentence if it fits
+            first_sentence = label.split(&#34;.&#34;)[0].strip()
+            if 0 &lt; len(first_sentence) &lt;= max_len:
+                return first_sentence
+            # Use textwrap.shorten to keep whole words
+            return textwrap.shorten(label, width=max_len, placeholder=&#34;…&#34;)
+
+        if self.max_length is not None and self.max_length &gt; 10:  # basic sanity
+            shortened: dict = {}
+            for k, originals in mapping.items():
+                new_k = _shorten(k, self.max_length)
+                # Merge if collision
+                if new_k not in shortened:
+                    shortened[new_k] = list(originals)
+                else:
+                    shortened[new_k].extend(originals)
+            mapping = shortened
+
+        self.normalized_elements = mapping
+        logger.debug(f&#34;Final normalized mapping: {mapping}&#34;)
+        if self.verbose:
+            print(f&#34;Final normalized mapping: {mapping}&#34;)
+
+    def normalize(
+        self, element_or_elements: Union[str, List[str]]
+    ) -&gt; Union[str, List[str]]:
+        &#34;&#34;&#34;
+        Normalizes the specified element or elements.
+
+        This method uses a caching mechanism to improve performance. If an element has been normalized before,
+        its normalized form is stored in a cache (self.normalizing_map). When the same element needs to be
+        normalized again, the method will first check the cache and use the stored normalized form if available,
+        instead of normalizing the element again.
+
+        The order of elements in the output will be the same as in the input. This is ensured by processing
+        the elements in the order they appear in the input and appending the normalized elements to the output
+        list in the same order.
+
+        Args:
+            element_or_elements (Union[str, List[str]]): The element or elements to normalize.
+
+        Returns:
+            str: The normalized element if the input was a string.
+            list: The normalized elements if the input was a list, preserving the order of elements in the input.
+        &#34;&#34;&#34;
+        if isinstance(element_or_elements, str):
+            denormalized_elements = [element_or_elements]
+        elif isinstance(element_or_elements, list):
+            denormalized_elements = element_or_elements
+        else:
+            raise ValueError(
+                &#34;The element_or_elements must be either a string or a list.&#34;
+            )
+
+        normalized_elements = []
+        elements_to_normalize = []
+        for element in denormalized_elements:
+            if element not in self.normalizing_map:
+                elements_to_normalize.append(element)
+
+        if elements_to_normalize:
+            # Convert the mapping to a list of categories for the applier template
+            categories_list = list(self.normalized_elements.keys())
+            rendering_configs = {
+                &#34;categories&#34;: categories_list,
+                &#34;elements&#34;: elements_to_normalize,
+            }
+            
+            logger.debug(f&#34;Applier rendering configs: {rendering_configs}&#34;)
+            if self.verbose:
+                print(f&#34;Applier rendering configs: {rendering_configs}&#34;)
+
+            # For now, use the manual template method for the applier due to LLMChat issues
+            # TODO: Debug and fix LLMChat template rendering for applier templates
+            logger.debug(&#34;Using manual template method for applier (LLMChat has template rendering issues)&#34;)
+            
+            messages = utils.compose_initial_LLM_messages_with_templates(
+                &#34;normalizer.applier.system.mustache&#34;,
+                &#34;normalizer.applier.user.mustache&#34;, 
+                base_module_folder=&#34;extraction&#34;,
+                rendering_configs=rendering_configs,
+            )
+
+            next_message = client().send_message(messages)
+            if next_message is None or &#34;content&#34; not in next_message:
+                logger.error(&#34;LLM returned None or invalid response for normalization applier&#34;)
+                # Fallback: map elements to first available category
+                normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
+            else:
+                normalized_elements_from_llm = utils.extract_json(next_message[&#34;content&#34;])
+            
+            debug_msg = f&#34;Normalization applier result (manual): {normalized_elements_from_llm}&#34;
+            logger.debug(debug_msg)
+            if self.verbose:
+                print(debug_msg)
+            
+            # Robust validation with fallbacks
+            if not isinstance(normalized_elements_from_llm, list):
+                logger.warning(f&#34;Expected list from LLM, got {type(normalized_elements_from_llm)}. Using fallback.&#34;)
+                normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
+            elif len(normalized_elements_from_llm) != len(elements_to_normalize):
+                logger.warning(f&#34;LLM returned {len(normalized_elements_from_llm)} elements, expected {len(elements_to_normalize)}. Padding/truncating.&#34;)
+                # Pad or truncate to match expected length
+                if len(normalized_elements_from_llm) &lt; len(elements_to_normalize):
+                    # Pad with first category
+                    default_cat = categories_list[0] if categories_list else elements_to_normalize[0]
+                    normalized_elements_from_llm.extend([default_cat] * (len(elements_to_normalize) - len(normalized_elements_from_llm)))
+                else:
+                    # Truncate
+                    normalized_elements_from_llm = normalized_elements_from_llm[:len(elements_to_normalize)]
+
+            for i, element in enumerate(elements_to_normalize):
+                normalized_element = normalized_elements_from_llm[i]
+                self.normalizing_map[element] = normalized_element
+
+        for element in denormalized_elements:
+            normalized_elements.append(self.normalizing_map[element])
+
+        # Return appropriate type based on input
+        if isinstance(element_or_elements, str):
+            return normalized_elements[0]  # Return single string for string input
+        else:
+            return normalized_elements  # Return list for list input
+
+    # --- Convenience API -------------------------------------------------
+    def normalized_mapping(self) -&gt; dict:
+        &#34;&#34;&#34;Return the normalized elements mapping (canonical -&gt; list(originals)).
+
+        Always returns a dict; if normalization somehow failed earlier and the
+        internal data isn&#39;t a dict, it coerces it into identity mapping.
+        &#34;&#34;&#34;
+        if isinstance(self.normalized_elements, dict):
+            return self.normalized_elements
+        if isinstance(self.normalized_elements, list):
+            return {str(x): [str(x)] for x in self.normalized_elements if x}
+        # fallback identity
+        return {e: [e] for e in self.elements}</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="tinytroupe.extraction.normalizer.Normalizer"><code class="flex name class">
+<span>class <span class="ident">Normalizer</span></span>
+<span>(</span><span>elements: List[str], n: int, verbose: bool = False, max_length: Optional[int] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A mechanism to normalize passages, concepts and other textual elements.</p>
+<p>Normalizes the specified elements.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>elements</code></strong> :&ensp;<code>list</code></dt>
+<dd>The elements to normalize.</dd>
+<dt><strong><code>n</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of normalized elements to output.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to print debug messages. Defaults to False.</dd>
+</dl>
+<h2 id="args_1">Args</h2>
+<dl>
+<dt><strong><code>elements</code></strong> :&ensp;<code>list</code></dt>
+<dd>The elements to normalize.</dd>
+<dt><strong><code>n</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of normalized elements to output.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to print debug messages. Defaults to False.</dd>
+<dt><strong><code>max_length</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>If provided, each normalized output element MUST NOT
+exceed this many characters. The LLM will be instructed to produce concise
+abstractions; as a safety net we also truncate/merge locally if still too long.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Normalizer:
+    &#34;&#34;&#34;
+    A mechanism to normalize passages, concepts and other textual elements.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        elements: List[str],
+        n: int,
+        verbose: bool = False,
+        max_length: Optional[int] = None,
+    ):
+        &#34;&#34;&#34;
+        Normalizes the specified elements.
+
+        Args:
+            elements (list): The elements to normalize.
+            n (int): The number of normalized elements to output.
+            verbose (bool, optional): Whether to print debug messages. Defaults to False.
+        Args:
+            elements (list): The elements to normalize.
+            n (int): The number of normalized elements to output.
+            verbose (bool, optional): Whether to print debug messages. Defaults to False.
+            max_length (int, optional): If provided, each normalized output element MUST NOT
+                exceed this many characters. The LLM will be instructed to produce concise
+                abstractions; as a safety net we also truncate/merge locally if still too long.
+        &#34;&#34;&#34;
+        # ensure elements are unique
+        self.elements = list(set(elements))
+
+        self.n = n
+        self.verbose = verbose
+        self.max_length = max_length
+
+        # a JSON-based structure, where each output element is a key to a list of input elements that were merged into it
+        self.normalized_elements = None
+        # a dict that maps each input element to its normalized output. This will be used as cache later.
+        self.normalizing_map = {}
+
+        rendering_configs = {&#34;n&#34;: n, &#34;elements&#34;: self.elements}
+        if max_length is not None:
+            rendering_configs[&#34;max_length&#34;] = max_length
+
+        logger.info(
+            f&#34;Computing up to {n} normalized elements from {len(self.elements)} originals (may return fewer if clusters merge).&#34;
+        )
+
+        # Use LLMChat for robust structured JSON output
+        chat = LLMChat(
+            system_template_name=&#34;normalizer.system.mustache&#34;,
+            user_template_name=&#34;normalizer.user.mustache&#34;,
+            base_module_folder=&#34;extraction&#34;,
+            output_type=dict,  # Request structured dict output
+            enable_json_output_format=True,
+            enable_justification_step=False,
+            enable_reasoning_step=False
+        )
+        
+        result = chat.call(**rendering_configs)
+
+        debug_msg = f&#34;Normalization result from LLMChat: {result}&#34;
+        logger.debug(debug_msg)
+        if self.verbose:
+            print(debug_msg)
+
+        logger.debug(f&#34;Raw LLM result: {result}&#34;)
+        logger.debug(f&#34;Result type: {type(result)}&#34;)
+        if self.verbose:
+            print(f&#34;Raw LLM result: {result}&#34;)
+            print(f&#34;Result type: {type(result)}&#34;)
+
+    # Normalize result structure to a dict[str, list[str]] mapping
+    # Expected format: {&#34;canonical_label&#34;: [list, of, originals], ...}
+        mapping = {}
+        if isinstance(result, dict):
+            for k, v in result.items():
+                if isinstance(v, (list, set, tuple)):
+                    originals = [str(x) for x in v if x]
+                else:
+                    originals = [str(v)] if v else []
+                mapping[str(k)] = originals
+        else:
+            # Unknown structure: fall back to identity over provided elements
+            logger.warning(f&#34;Normalizer received unexpected result format {type(result)}; falling back to identity mapping.&#34;)
+            mapping = {e: [e] for e in self.elements}
+        # Remove empties
+        mapping = {k: v for k, v in mapping.items() if k and v}
+
+        # Enforce HARD upper bound: never expose more than self.n categories
+        if len(mapping) &gt; self.n:
+            logger.warning(
+                f&#34;Normalizer produced {len(mapping)} categories exceeding the cap {self.n}; merging overflow into &#39;Other&#39;.&#34;
+            )
+            # Sort keys by descending size of originals so we retain the largest/most meaningful clusters
+            sorted_keys = sorted(mapping.keys(), key=lambda k: len(mapping[k]), reverse=True)
+            keep = sorted_keys[: self.n - 1] if self.n &gt; 1 else []
+            overflow = sorted_keys[len(keep):]
+            other_bucket: List[str] = []
+            for k in overflow:
+                other_bucket.extend(mapping[k])
+                del mapping[k]
+            if self.n == 1:
+                # Single bucket scenario: collapse everything into one abstraction
+                merged_label = keep[0] if keep else &#34;Other&#34;
+                if not keep:
+                    mapping = {merged_label: other_bucket}
+                else:
+                    # Add overflow items into the sole kept cluster
+                    mapping[merged_label].extend(other_bucket)
+            else:
+                mapping[&#34;Other&#34;] = other_bucket
+
+        # Safety: if still somehow &gt; n (edge race), truncate deterministically
+        if len(mapping) &gt; self.n:
+            logger.warning(
+                f&#34;Post-merge category count still {len(mapping)} &gt; {self.n}; truncating extras.&#34;  # pragma: no cover
+            )
+            truncated = {}
+            for i, (k, v) in enumerate(sorted(mapping.items(), key=lambda kv: len(kv[1]), reverse=True)):
+                if i &lt; self.n:
+                    truncated[k] = v
+            mapping = truncated
+
+        # Enforce maximum length locally (merge clusters whose canonical label is shortened)
+        def _shorten(label: str, max_len: int) -&gt; str:
+            if len(label) &lt;= max_len:
+                return label
+            # Prefer first sentence if it fits
+            first_sentence = label.split(&#34;.&#34;)[0].strip()
+            if 0 &lt; len(first_sentence) &lt;= max_len:
+                return first_sentence
+            # Use textwrap.shorten to keep whole words
+            return textwrap.shorten(label, width=max_len, placeholder=&#34;…&#34;)
+
+        if self.max_length is not None and self.max_length &gt; 10:  # basic sanity
+            shortened: dict = {}
+            for k, originals in mapping.items():
+                new_k = _shorten(k, self.max_length)
+                # Merge if collision
+                if new_k not in shortened:
+                    shortened[new_k] = list(originals)
+                else:
+                    shortened[new_k].extend(originals)
+            mapping = shortened
+
+        self.normalized_elements = mapping
+        logger.debug(f&#34;Final normalized mapping: {mapping}&#34;)
+        if self.verbose:
+            print(f&#34;Final normalized mapping: {mapping}&#34;)
+
+    def normalize(
+        self, element_or_elements: Union[str, List[str]]
+    ) -&gt; Union[str, List[str]]:
+        &#34;&#34;&#34;
+        Normalizes the specified element or elements.
+
+        This method uses a caching mechanism to improve performance. If an element has been normalized before,
+        its normalized form is stored in a cache (self.normalizing_map). When the same element needs to be
+        normalized again, the method will first check the cache and use the stored normalized form if available,
+        instead of normalizing the element again.
+
+        The order of elements in the output will be the same as in the input. This is ensured by processing
+        the elements in the order they appear in the input and appending the normalized elements to the output
+        list in the same order.
+
+        Args:
+            element_or_elements (Union[str, List[str]]): The element or elements to normalize.
+
+        Returns:
+            str: The normalized element if the input was a string.
+            list: The normalized elements if the input was a list, preserving the order of elements in the input.
+        &#34;&#34;&#34;
+        if isinstance(element_or_elements, str):
+            denormalized_elements = [element_or_elements]
+        elif isinstance(element_or_elements, list):
+            denormalized_elements = element_or_elements
+        else:
+            raise ValueError(
+                &#34;The element_or_elements must be either a string or a list.&#34;
+            )
+
+        normalized_elements = []
+        elements_to_normalize = []
+        for element in denormalized_elements:
+            if element not in self.normalizing_map:
+                elements_to_normalize.append(element)
+
+        if elements_to_normalize:
+            # Convert the mapping to a list of categories for the applier template
+            categories_list = list(self.normalized_elements.keys())
+            rendering_configs = {
+                &#34;categories&#34;: categories_list,
+                &#34;elements&#34;: elements_to_normalize,
+            }
+            
+            logger.debug(f&#34;Applier rendering configs: {rendering_configs}&#34;)
+            if self.verbose:
+                print(f&#34;Applier rendering configs: {rendering_configs}&#34;)
+
+            # For now, use the manual template method for the applier due to LLMChat issues
+            # TODO: Debug and fix LLMChat template rendering for applier templates
+            logger.debug(&#34;Using manual template method for applier (LLMChat has template rendering issues)&#34;)
+            
+            messages = utils.compose_initial_LLM_messages_with_templates(
+                &#34;normalizer.applier.system.mustache&#34;,
+                &#34;normalizer.applier.user.mustache&#34;, 
+                base_module_folder=&#34;extraction&#34;,
+                rendering_configs=rendering_configs,
+            )
+
+            next_message = client().send_message(messages)
+            if next_message is None or &#34;content&#34; not in next_message:
+                logger.error(&#34;LLM returned None or invalid response for normalization applier&#34;)
+                # Fallback: map elements to first available category
+                normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
+            else:
+                normalized_elements_from_llm = utils.extract_json(next_message[&#34;content&#34;])
+            
+            debug_msg = f&#34;Normalization applier result (manual): {normalized_elements_from_llm}&#34;
+            logger.debug(debug_msg)
+            if self.verbose:
+                print(debug_msg)
+            
+            # Robust validation with fallbacks
+            if not isinstance(normalized_elements_from_llm, list):
+                logger.warning(f&#34;Expected list from LLM, got {type(normalized_elements_from_llm)}. Using fallback.&#34;)
+                normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
+            elif len(normalized_elements_from_llm) != len(elements_to_normalize):
+                logger.warning(f&#34;LLM returned {len(normalized_elements_from_llm)} elements, expected {len(elements_to_normalize)}. Padding/truncating.&#34;)
+                # Pad or truncate to match expected length
+                if len(normalized_elements_from_llm) &lt; len(elements_to_normalize):
+                    # Pad with first category
+                    default_cat = categories_list[0] if categories_list else elements_to_normalize[0]
+                    normalized_elements_from_llm.extend([default_cat] * (len(elements_to_normalize) - len(normalized_elements_from_llm)))
+                else:
+                    # Truncate
+                    normalized_elements_from_llm = normalized_elements_from_llm[:len(elements_to_normalize)]
+
+            for i, element in enumerate(elements_to_normalize):
+                normalized_element = normalized_elements_from_llm[i]
+                self.normalizing_map[element] = normalized_element
+
+        for element in denormalized_elements:
+            normalized_elements.append(self.normalizing_map[element])
+
+        # Return appropriate type based on input
+        if isinstance(element_or_elements, str):
+            return normalized_elements[0]  # Return single string for string input
+        else:
+            return normalized_elements  # Return list for list input
+
+    # --- Convenience API -------------------------------------------------
+    def normalized_mapping(self) -&gt; dict:
+        &#34;&#34;&#34;Return the normalized elements mapping (canonical -&gt; list(originals)).
+
+        Always returns a dict; if normalization somehow failed earlier and the
+        internal data isn&#39;t a dict, it coerces it into identity mapping.
+        &#34;&#34;&#34;
+        if isinstance(self.normalized_elements, dict):
+            return self.normalized_elements
+        if isinstance(self.normalized_elements, list):
+            return {str(x): [str(x)] for x in self.normalized_elements if x}
+        # fallback identity
+        return {e: [e] for e in self.elements}</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="tinytroupe.extraction.normalizer.Normalizer.normalize"><code class="name flex">
+<span>def <span class="ident">normalize</span></span>(<span>self, element_or_elements: Union[str, List[str]]) ‑> Union[str, List[str]]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Normalizes the specified element or elements.</p>
+<p>This method uses a caching mechanism to improve performance. If an element has been normalized before,
+its normalized form is stored in a cache (self.normalizing_map). When the same element needs to be
+normalized again, the method will first check the cache and use the stored normalized form if available,
+instead of normalizing the element again.</p>
+<p>The order of elements in the output will be the same as in the input. This is ensured by processing
+the elements in the order they appear in the input and appending the normalized elements to the output
+list in the same order.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>element_or_elements</code></strong> :&ensp;<code>Union[str, List[str]]</code></dt>
+<dd>The element or elements to normalize.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>str</code></dt>
+<dd>The normalized element if the input was a string.</dd>
+<dt><code>list</code></dt>
+<dd>The normalized elements if the input was a list, preserving the order of elements in the input.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def normalize(
+    self, element_or_elements: Union[str, List[str]]
+) -&gt; Union[str, List[str]]:
+    &#34;&#34;&#34;
+    Normalizes the specified element or elements.
+
+    This method uses a caching mechanism to improve performance. If an element has been normalized before,
+    its normalized form is stored in a cache (self.normalizing_map). When the same element needs to be
+    normalized again, the method will first check the cache and use the stored normalized form if available,
+    instead of normalizing the element again.
+
+    The order of elements in the output will be the same as in the input. This is ensured by processing
+    the elements in the order they appear in the input and appending the normalized elements to the output
+    list in the same order.
+
+    Args:
+        element_or_elements (Union[str, List[str]]): The element or elements to normalize.
+
+    Returns:
+        str: The normalized element if the input was a string.
+        list: The normalized elements if the input was a list, preserving the order of elements in the input.
+    &#34;&#34;&#34;
+    if isinstance(element_or_elements, str):
+        denormalized_elements = [element_or_elements]
+    elif isinstance(element_or_elements, list):
+        denormalized_elements = element_or_elements
+    else:
+        raise ValueError(
+            &#34;The element_or_elements must be either a string or a list.&#34;
+        )
+
+    normalized_elements = []
+    elements_to_normalize = []
+    for element in denormalized_elements:
+        if element not in self.normalizing_map:
+            elements_to_normalize.append(element)
+
+    if elements_to_normalize:
+        # Convert the mapping to a list of categories for the applier template
+        categories_list = list(self.normalized_elements.keys())
+        rendering_configs = {
+            &#34;categories&#34;: categories_list,
+            &#34;elements&#34;: elements_to_normalize,
+        }
+        
+        logger.debug(f&#34;Applier rendering configs: {rendering_configs}&#34;)
+        if self.verbose:
+            print(f&#34;Applier rendering configs: {rendering_configs}&#34;)
+
+        # For now, use the manual template method for the applier due to LLMChat issues
+        # TODO: Debug and fix LLMChat template rendering for applier templates
+        logger.debug(&#34;Using manual template method for applier (LLMChat has template rendering issues)&#34;)
+        
+        messages = utils.compose_initial_LLM_messages_with_templates(
+            &#34;normalizer.applier.system.mustache&#34;,
+            &#34;normalizer.applier.user.mustache&#34;, 
+            base_module_folder=&#34;extraction&#34;,
+            rendering_configs=rendering_configs,
+        )
+
+        next_message = client().send_message(messages)
+        if next_message is None or &#34;content&#34; not in next_message:
+            logger.error(&#34;LLM returned None or invalid response for normalization applier&#34;)
+            # Fallback: map elements to first available category
+            normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
+        else:
+            normalized_elements_from_llm = utils.extract_json(next_message[&#34;content&#34;])
+        
+        debug_msg = f&#34;Normalization applier result (manual): {normalized_elements_from_llm}&#34;
+        logger.debug(debug_msg)
+        if self.verbose:
+            print(debug_msg)
+        
+        # Robust validation with fallbacks
+        if not isinstance(normalized_elements_from_llm, list):
+            logger.warning(f&#34;Expected list from LLM, got {type(normalized_elements_from_llm)}. Using fallback.&#34;)
+            normalized_elements_from_llm = [categories_list[0]] * len(elements_to_normalize) if categories_list else elements_to_normalize
+        elif len(normalized_elements_from_llm) != len(elements_to_normalize):
+            logger.warning(f&#34;LLM returned {len(normalized_elements_from_llm)} elements, expected {len(elements_to_normalize)}. Padding/truncating.&#34;)
+            # Pad or truncate to match expected length
+            if len(normalized_elements_from_llm) &lt; len(elements_to_normalize):
+                # Pad with first category
+                default_cat = categories_list[0] if categories_list else elements_to_normalize[0]
+                normalized_elements_from_llm.extend([default_cat] * (len(elements_to_normalize) - len(normalized_elements_from_llm)))
+            else:
+                # Truncate
+                normalized_elements_from_llm = normalized_elements_from_llm[:len(elements_to_normalize)]
+
+        for i, element in enumerate(elements_to_normalize):
+            normalized_element = normalized_elements_from_llm[i]
+            self.normalizing_map[element] = normalized_element
+
+    for element in denormalized_elements:
+        normalized_elements.append(self.normalizing_map[element])
+
+    # Return appropriate type based on input
+    if isinstance(element_or_elements, str):
+        return normalized_elements[0]  # Return single string for string input
+    else:
+        return normalized_elements  # Return list for list input</code></pre>
+</details>
+</dd>
+<dt id="tinytroupe.extraction.normalizer.Normalizer.normalized_mapping"><code class="name flex">
+<span>def <span class="ident">normalized_mapping</span></span>(<span>self) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return the normalized elements mapping (canonical -&gt; list(originals)).</p>
+<p>Always returns a dict; if normalization somehow failed earlier and the
+internal data isn't a dict, it coerces it into identity mapping.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def normalized_mapping(self) -&gt; dict:
+    &#34;&#34;&#34;Return the normalized elements mapping (canonical -&gt; list(originals)).
+
+    Always returns a dict; if normalization somehow failed earlier and the
+    internal data isn&#39;t a dict, it coerces it into identity mapping.
+    &#34;&#34;&#34;
+    if isinstance(self.normalized_elements, dict):
+        return self.normalized_elements
+    if isinstance(self.normalized_elements, list):
+        return {str(x): [str(x)] for x in self.normalized_elements if x}
+    # fallback identity
+    return {e: [e] for e in self.elements}</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="tinytroupe.extraction" href="index.html">tinytroupe.extraction</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="tinytroupe.extraction.normalizer.Normalizer" href="#tinytroupe.extraction.normalizer.Normalizer">Normalizer</a></code></h4>
+<ul class="">
+<li><code><a title="tinytroupe.extraction.normalizer.Normalizer.normalize" href="#tinytroupe.extraction.normalizer.Normalizer.normalize">normalize</a></code></li>
+<li><code><a title="tinytroupe.extraction.normalizer.Normalizer.normalized_mapping" href="#tinytroupe.extraction.normalizer.Normalizer.normalized_mapping">normalized_mapping</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

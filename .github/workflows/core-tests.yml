@@ -1,0 +1,65 @@
+# Runs the TinyTroupe core test suite on every push/PR to main.
+# Core tests validate critical functionality and typically complete in ~1 hour.
+# Slow tests are excluded for faster CI feedback.
+#
+# Required secret:
+#   OPENAI_API_KEY — an OpenAI API key with access to the models configured
+#                    in config.ini (default: gpt-5-mini).
+
+name: Core Tests
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main", "development" ]
+  workflow_dispatch:          # allow manual triggering
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180       # safeguard against runaway LLM calls
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Restore API cache
+        uses: actions/cache/restore@v4
+        with:
+          path: openai_api_cache.json
+          key: openai-api-cache-${{ github.run_id }}
+          restore-keys: |
+            openai-api-cache-
+
+      - name: Run core tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: pytest -s --use_cache -m "core and not slow"
+
+      - name: Save API cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: openai_api_cache.json
+          key: openai-api-cache-${{ github.run_id }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results.xml
+            test-report.html

@@ -1,0 +1,30 @@
+Now, please execute a concrete enrichment according with the following specification.
+
+## Content type 
+{{#content_type}}
+The type of the content is: {{content_type}}
+{{/content_type}}
+{{^content_type}}
+The type of the content is not specified, so please make your best guess about what it is.
+{{/content_type}}
+
+## Enrichment requirements
+{{requirements}}
+
+{{#contextual_information}}
+## Contextual information (if any)
+{{contextual_information}}
+{{/contextual_information}}
+
+{{#contextual_cache}}
+## Contextual cache (if any)
+
+    - {{cached_type}}: {{cached_content}}
+{{/contextual_cache}}
+
+## CONTENT TO ENRICH 
+
+This is the actual content to enrich:
+```
+{{content}}
+```

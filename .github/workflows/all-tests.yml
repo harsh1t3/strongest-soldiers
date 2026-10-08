@@ -1,0 +1,74 @@
+# Runs the full TinyTroupe test suite (including slow tests).
+# Runs on the 1st of each month (if there were recent commits), or manually.
+#
+# Required secret:
+#   OPENAI_API_KEY — an OpenAI API key with access to the models configured
+#                    in config.ini (default: gpt-5-mini).
+
+name: All Tests
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'      # 1st of each month at 06:00 UTC
+  workflow_dispatch:          # manual trigger always available
+
+jobs:
+  all-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360      # full suite can take several hours
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # full history needed for commit date check
+
+      - name: Skip if no commits in the last 30 days
+        if: github.event_name == 'schedule'
+        run: |
+          LAST_COMMIT=$(git log -1 --format=%ct)
+          THIRTY_DAYS_AGO=$(date -d '30 days ago' +%s)
+          if [ "$LAST_COMMIT" -lt "$THIRTY_DAYS_AGO" ]; then
+            echo "No commits in the last 30 days — skipping."
+            exit 1
+          fi
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Restore API cache
+        uses: actions/cache/restore@v4
+        with:
+          path: openai_api_cache.json
+          key: openai-api-cache-${{ github.run_id }}
+          restore-keys: |
+            openai-api-cache-
+
+      - name: Run all tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: pytest -s --use_cache
+
+      - name: Save API cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: openai_api_cache.json
+          key: openai-api-cache-${{ github.run_id }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-all
+          path: |
+            test-results.xml
+            test-report.html

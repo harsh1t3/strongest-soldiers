@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["tinytroupe"]
+include-package-data = true
+
+[project]
+name = "tinytroupe"
+version = "0.7.0"
+authors = [
+  { name="Paulo Salem", email="paulo.salem@microsoft.com" }
+]
+description = "LLM-based people simulation for design, validation and insight generation in business."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "pandas", 
+    "pytest", "pytest-cov", "pytest-timeout", "pytest-html",
+    "openai >= 1.65", 
+    "httpx",
+    "tiktoken",
+    "msal",
+    "rich", "requests", "chevron",
+    "llama-index", "llama-index-embeddings-huggingface", "llama-index-readers-web", "llama-index-embeddings-azure-openai",
+    "pypandoc", "python-docx", "markdown",
+    "jupyter",
+    "matplotlib",
+    "seaborn",
+    "pydantic>=2.5.0",
+    "textdistance",
+    "scipy"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/microsoft/tinytroupe"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+
+testpaths = [
+  "./tests/"
+]
+
+markers = [
+  "examples: mark a test as the execution of examples",
+  "notebooks: mark a test as a more specific Jupyter notebook execution example",
+  "core: mark a test as a core test for quick validation after important modifications",
+  "slow: mark a test as slow running (excluded from core tests)",
+  "gpt41mini: mark a test for gpt-4.1-mini model compatibility testing",
+]
+addopts = "--cov=tinytroupe --cov-report=html --cov-report=xml --junit-xml=test-results.xml --html=test-report.html --self-contained-html"
+timeout_exit = 0

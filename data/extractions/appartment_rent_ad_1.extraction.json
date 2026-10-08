@@ -1,0 +1,71 @@
+{
+    "agent_extractions": {
+        "Lisa": [
+            {
+                "main_point": "To advertise Paulo's apartment effectively, we should highlight its unique features and benefits."
+            },
+            {
+                "main_point": "The spacious, open-concept design, the recent renovations, and the proximity to key amenities are all strong selling points."
+            },
+            {
+                "main_point": "The apartment's suitability for medical students due to its location near the best Medicine School should be emphasized."
+            },
+            {
+                "main_point": "We should create a listing that emphasizes the apartment's modern and open design, its recent upgrades, and the convenience of the location."
+            },
+            {
+                "main_point": "High-quality photos that showcase the spacious rooms and elegant kitchen should be used."
+            },
+            {
+                "main_point": "The proximity to the Medicine School could attract medical students looking for a quiet and comfortable place to live."
+            },
+            {
+                "main_point": "We could post the ad on popular rental websites and perhaps even reach out to the student community directly."
+            },
+            {
+                "main_point": "Professional photos are a must to highlight the visual appeal of the apartment."
+            },
+            {
+                "main_point": "The included amenities like the new washing machine that doubles as a dryer, and the fully furnished aspect, are a huge plus."
+            },
+            {
+                "main_point": "Creating a virtual tour to allow potential tenants to experience the space online is quite popular nowadays."
+            },
+            {
+                "main_point": "We should consider the timing of the listing to ensure maximum visibility."
+            },
+            {
+                "main_point": "Synchronizing the listing with the academic calendar, targeting medical students at the beginning of a semester, could be effective."
+            },
+            {
+                "main_point": "We could advertise the apartment on platforms frequented by medical students and young professionals."
+            },
+            {
+                "main_point": "Social media groups, medical school forums, and even local community boards could be effective."
+            },
+            {
+                "main_point": "Offering a virtual Q&A session for interested tenants to ask questions in real-time provides a personal touch and builds trust."
+            },
+            {
+                "main_point": "We could use a mix of traditional and digital marketing strategies to reach a wider audience."
+            },
+            {
+                "main_point": "Offering a special incentive for medical students, like a discount on the first month's rent, to make the offer more appealing."
+            },
+            {
+                "main_point": "Combining social media advertising with the virtual tour could really maximize our reach."
+            },
+            {
+                "main_point": "A content calendar for our advertising efforts to ensure we're posting at optimal times could be beneficial."
+            },
+            {
+                "main_point": "All our marketing materials should communicate the special offers clearly."
+            }
+        ]
+    },
+    "world_extraction": {
+        "Focus group": {
+            "ad_copy": "Discover modern living in a newly renovated space where elegance meets convenience. Step into a world of open-concept design with spacious integrated areas, perfect for the urban dweller who appreciates style and freedom. Freshly repainted and boasting a chic kitchen with a central wood table, this one-bedroom apartment, originally two, now features a dedicated home office for your work-from-home needs. Located in a classic building near the best Medicine School, it's ideal for medical students seeking a serene study environment. Enjoy the ease of a fully furnished home, complete with a new washing machine that doubles as a dryer. Experience the apartment through a virtual tour and take advantage of our special offer for medical students. Connect with us during a live virtual Q&A session. Your perfect urban retreat awaits, aligning with the academic calendar for maximum convenience. Don't miss out on this unique opportunity for sophisticated and hassle-free living."
+        }
+    }
+}
